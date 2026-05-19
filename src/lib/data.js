@@ -1,8 +1,5 @@
-  const norm = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z. ]/g, '')
-  return FLAG_MAP[norm] || FLAG_MAP[name] || ''
-}
-
-  A: ['México', 'Sudáfrica', 'Corea del Sur', 'Rep. Checa'],
+export const GRUPOS = {
+A: ['México', 'Sudáfrica', 'Corea del Sur', 'Rep. Checa'],
   B: ['Canadá', 'Bosnia-Herz.', 'Qatar', 'Suiza'],
   C: ['Brasil', 'Marruecos', 'Haití', 'Escocia'],
   D: ['Estados Unidos', 'Paraguay', 'Australia', 'Turquía'],
