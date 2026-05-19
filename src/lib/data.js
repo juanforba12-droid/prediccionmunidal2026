@@ -49,7 +49,8 @@ export const BANDERAS = {
   'Panamá':          '🇵🇦',
 }
 
-export const flag = (name) => BANDERAS[name] || '🏳'
+export const flag = (name) => BANDERAS[name] || ''
+
 
 
   A: ['México', 'Sudáfrica', 'Corea del Sur', 'Rep. Checa'],
