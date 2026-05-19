@@ -49,7 +49,7 @@ export const BANDERAS = {
   'Panamá':          '🇵🇦',
 }
 
-export const flag = (name) => BANDERAS[name] || '🏳️'
+export const flag = (name) => BANDERAS[name] || '🏳'
 
 
   A: ['México', 'Sudáfrica', 'Corea del Sur', 'Rep. Checa'],
@@ -182,7 +182,7 @@ export const PARTIDOS_ELIMINATORIAS = [
 
 export const TODAS_LAS_FASES = [
   { key: 'grupos',   label: '⚽ Fase de Grupos' },
-  { key: 'octavos',  label: '⚔️ Octavos' },
+  { key: 'octavos',  label: '⚔ Octavos' },
   { key: 'cuartos',  label: '🏹 Cuartos' },
   { key: 'semis',    label: '🔥 Semifinales' },
   { key: 'tercero',  label: '🥉 3er Puesto' },
