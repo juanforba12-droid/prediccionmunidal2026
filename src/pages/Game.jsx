@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import {
   PARTIDOS_GRUPOS, PARTIDOS_ELIMINATORIAS, TODAS_LAS_FASES,
-  JORNADAS_GRUPOS, calcPts, AVATARS, COLORS, GRUPOS, flag
+  JORNADAS_GRUPOS, calcPts, AVATARS, COLORS, GRUPOS
 } from '../lib/data.js'
 
 const ALL_MATCHES = [...PARTIDOS_GRUPOS, ...PARTIDOS_ELIMINATORIAS]
@@ -226,7 +226,7 @@ export default function Game() {
           {/* Phase selector */}
           <div style={{ display:'flex', gap:6, marginBottom:12, overflowX:'auto', paddingBottom:4 }}>
             {TODAS_LAS_FASES.map(f => (
-              <button key={f.key} onClick={() => setFase(f.key)} style={{ flexShrink:0, padding:'8px 14px', borderRadius:20, border:'none', cursor:'pointer', fontWeight:700, fontSize:11, background:fase===f.key?`${myPlayer?.color||'#e63946'}22`:'rgba(255,255,255,0.05)', color:fase===f.key?(myPlayer?.color||'#e63946'):'#2a4060', border:`1px solid ${fase===f.key?(myPlayer?.color||'#e63946')+'44':'transparent'}`, transition:'all .2s', whiteSpace:'nowrap' }}>
+              <button key={f.key} onClick={() => setFase(f.key)} style={{ flexShrink:0, padding:'8px 14px', borderRadius:20, cursor:'pointer', fontWeight:700, fontSize:11, background:fase===f.key?`${myPlayer?.color||'#e63946'}22`:'rgba(255,255,255,0.05)', color:fase===f.key?(myPlayer?.color||'#e63946'):'#2a4060', border:`1px solid ${fase===f.key?(myPlayer?.color||'#e63946')+'44':'transparent'}`, transition:'all .2s', whiteSpace:'nowrap', outline:'none' }}>
                 {f.label}
               </button>
             ))}
@@ -294,7 +294,7 @@ export default function Game() {
                   </div>
 
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <div style={{ flex:1, textAlign:'right', fontSize:13, fontWeight:700 }}>{flag(m.local)} {m.local}</div>
+                    <div style={{ flex:1, textAlign:'right', fontSize:13, fontWeight:700 }}>{m.local}</div>
                     <div style={{ display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
                       <input type="text" inputMode="numeric" maxLength={2} value={pl}
                         onChange={e => savePred(m.id, 'l', e.target.value)} placeholder="–"
@@ -304,7 +304,7 @@ export default function Game() {
                         onChange={e => savePred(m.id, 'v', e.target.value)} placeholder="–"
                         style={{ width:40, height:40, textAlign:'center', fontSize:20, fontWeight:900, borderRadius:8, border:`2px solid ${pv!==''?mc:'rgba(255,255,255,0.1)'}`, background:`${mc}18`, color:mc, transition:'border .2s' }} />
                     </div>
-                    <div style={{ flex:1, textAlign:'left', fontSize:13, fontWeight:700 }}>{m.vis} {flag(m.vis)}</div>
+                    <div style={{ flex:1, textAlign:'left', fontSize:13, fontWeight:700 }}>{m.vis}</div>
                   </div>
 
                   {/* Admin: real result */}
@@ -445,7 +445,7 @@ export default function Game() {
                           <div style={{ fontSize:12, fontWeight:700, color: ti===0?'#ffd700': ti===1?'#c0c0c0':'#2a4060', width:16, textAlign:'center' }}>
                             {ti===0?'🥇':ti===1?'🥈':ti===2?'🥉':`${ti+1}`}
                           </div>
-                          <div style={{ flex:1, fontSize:13, fontWeight: isQ?700:400, color: isQ?'#e8eaf0':'#8a9ab0' }}>{flag(t.name)} {t.name}</div>
+                          <div style={{ flex:1, fontSize:13, fontWeight: isQ?700:400, color: isQ?'#e8eaf0':'#8a9ab0' }}>{t.name}</div>
                           {[t.pj,t.pg,t.pe,t.pp,t.gf,t.gc,t.pts].map((v,i) => (
                             <div key={i} style={{ width:22, textAlign:'center', fontSize:12, fontWeight: i===6?700:400, color: i===6?(t.pts>0?gc:'#2a4060'):'#4a6080' }}>{v}</div>
                           ))}
