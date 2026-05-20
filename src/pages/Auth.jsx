@@ -30,9 +30,12 @@ export default function Auth() {
       options: { data: { display_name: name } }
     })
     if (e) { setError(e.message); setLoading(false); return }
-    // Update profile name
-    await supabase.from('profiles').upsert({ id: data.user.id, name })
-    setSuccess('¡Cuenta creada! Revisa tu email para confirmarla.')
+    if (data?.user?.id) {
+      await supabase.from('profiles').upsert({ id: data.user.id, name })
+      setSuccess('¡Cuenta creada! Revisa tu email para confirmarla y luego inicia sesión.')
+    } else {
+      setSuccess('¡Registro completado! Revisa tu email para confirmar la cuenta.')
+    }
     setLoading(false)
   }
 
