@@ -30,6 +30,7 @@ export default function Game() {
 
   const isCreator = group && myPlayer && group.creator_id === myPlayer.id
   const shareUrl = `${window.location.origin}/unirse/${code}`
+  const myPersonalUrl = myPlayer ? `${window.location.origin}/unirse/${code}?pid=${myPlayer.id}` : ''
 
   // ── Load initial data ────────────────────────────────────────────────────
   useEffect(() => {
@@ -178,6 +179,7 @@ export default function Game() {
       {/* ── TOP BAR */}
       <div style={{ position:'sticky', top:0, zIndex:50, background:'rgba(8,12,20,.96)', backdropFilter:'blur(14px)', borderBottom:'1px solid rgba(255,255,255,.06)', padding:'10px 16px' }}>
         <div style={{ maxWidth:640, margin:'0 auto', display:'flex', alignItems:'center', gap:10 }}>
+          <button onClick={() => nav('/')} style={{ background:'none', border:'none', color:'#3a5070', cursor:'pointer', fontSize:20, padding:'0 8px 0 0' }}>←</button>
           <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:22, color:'#e63946', letterSpacing:1 }}>QUINIELA</div>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:13, fontWeight:700 }}>{group?.name}</div>
@@ -282,12 +284,36 @@ export default function Game() {
               const mc = myPlayer?.color || '#e63946'
               const ptsBg = pts === 3 ? '#2a9d8f' : pts === 1 ? '#f4a261' : pts === 0 && hasReal ? '#e63946' : null
 
+              // Lock predictions 1 day before match
+              const MATCH_DATES = {
+                'Jue 11 Jun': new Date('2026-06-11'), 'Vie 12 Jun': new Date('2026-06-12'),
+                'Sáb 13 Jun': new Date('2026-06-13'), 'Dom 14 Jun': new Date('2026-06-14'),
+                'Lun 15 Jun': new Date('2026-06-15'), 'Mar 16 Jun': new Date('2026-06-16'),
+                'Mié 17 Jun': new Date('2026-06-17'), 'Jue 18 Jun': new Date('2026-06-18'),
+                'Vie 19 Jun': new Date('2026-06-19'), 'Sáb 20 Jun': new Date('2026-06-20'),
+                'Dom 21 Jun': new Date('2026-06-21'), 'Lun 22 Jun': new Date('2026-06-22'),
+                'Mar 23 Jun': new Date('2026-06-23'), 'Mié 24 Jun': new Date('2026-06-24'),
+                'Jue 25 Jun': new Date('2026-06-25'), 'Vie 26 Jun': new Date('2026-06-26'),
+                'Sáb 27 Jun': new Date('2026-06-27'), 'Mar 1 Jul': new Date('2026-07-01'),
+                'Mié 2 Jul': new Date('2026-07-02'), 'Jue 3 Jul': new Date('2026-07-03'),
+                'Vie 4 Jul': new Date('2026-07-04'), 'Sáb 5 Jul': new Date('2026-07-05'),
+                'Mar 8 Jul': new Date('2026-07-08'), 'Mié 9 Jul': new Date('2026-07-09'),
+                'Jue 10 Jul': new Date('2026-07-10'), 'Vie 11 Jul': new Date('2026-07-11'),
+                'Mar 15 Jul': new Date('2026-07-15'), 'Mié 16 Jul': new Date('2026-07-16'),
+                'Sáb 19 Jul': new Date('2026-07-19'), 'Dom 19 Jul': new Date('2026-07-19'),
+              }
+              const matchDate = MATCH_DATES[m.fecha]
+              const now = new Date()
+              const lockDate = matchDate ? new Date(matchDate.getTime() - 24*60*60*1000) : null
+              const isLocked = lockDate ? now >= lockDate : false
+
               return (
-                <div key={m.id} className="fade-up" style={{ animationDelay:`${idx*0.02}s`, background:hasPred?`${mc}0d`:'rgba(255,255,255,0.03)', border:`1px solid ${hasPred?mc+'33':'rgba(255,255,255,0.07)'}`, borderRadius:12, padding:'12px 14px', transition:'all .2s' }}>
+                <div key={m.id} className="fade-up" style={{ animationDelay:`${idx*0.02}s`, background: isLocked && !hasPred ? 'rgba(255,255,255,0.02)' : hasPred?`${mc}0d`:'rgba(255,255,255,0.03)', border:`1px solid ${hasPred?mc+'33':isLocked?'rgba(255,255,255,0.04)':'rgba(255,255,255,0.07)'}`, borderRadius:12, padding:'12px 14px', transition:'all .2s', opacity: isLocked && !hasPred ? 0.7 : 1 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
                     <span style={{ fontSize:10, color:'#2a4060', background:'rgba(255,255,255,0.05)', padding:'2px 8px', borderRadius:20 }}>
                       {m.grupo ? `Grupo ${m.grupo} · ` : ''}{m.fecha}
                     </span>
+                    {isLocked && !hasReal && <span style={{ fontSize:10, color:'#f4a261', background:'rgba(244,162,97,0.12)', padding:'2px 8px', borderRadius:20 }}>🔒 Cerrado</span>}
                     {ptsBg && <span style={{ marginLeft:'auto', fontSize:11, fontWeight:700, color:'#fff', background:ptsBg, padding:'2px 10px', borderRadius:20 }}>
                       {pts === 3 ? '⭐ 3 pts' : pts === 1 ? '✓ 1 pt' : '✗ 0 pts'}
                     </span>}
@@ -297,18 +323,20 @@ export default function Game() {
                     <div style={{ flex:1, textAlign:'right', fontSize:13, fontWeight:700 }}>{m.local}</div>
                     <div style={{ display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
                       <input type="text" inputMode="numeric" maxLength={2} value={pl}
-                        onChange={e => savePred(m.id, 'l', e.target.value)} placeholder="–"
-                        style={{ width:40, height:40, textAlign:'center', fontSize:20, fontWeight:900, borderRadius:8, border:`2px solid ${pl!==''?mc:'rgba(255,255,255,0.1)'}`, background:`${mc}18`, color:mc, transition:'border .2s' }} />
+                        onChange={e => !isLocked && savePred(m.id, 'l', e.target.value)} placeholder="–"
+                        readOnly={isLocked}
+                        style={{ width:40, height:40, textAlign:'center', fontSize:20, fontWeight:900, borderRadius:8, border:`2px solid ${pl!==''?mc:isLocked?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.1)'}`, background: isLocked ? 'rgba(255,255,255,0.04)' : `${mc}18`, color: isLocked ? '#3a5070' : mc, transition:'border .2s', cursor: isLocked ? 'not-allowed' : 'text' }} />
                       <span style={{ color:'#1a2a3a', fontSize:18, fontWeight:900 }}>:</span>
                       <input type="text" inputMode="numeric" maxLength={2} value={pv}
-                        onChange={e => savePred(m.id, 'v', e.target.value)} placeholder="–"
-                        style={{ width:40, height:40, textAlign:'center', fontSize:20, fontWeight:900, borderRadius:8, border:`2px solid ${pv!==''?mc:'rgba(255,255,255,0.1)'}`, background:`${mc}18`, color:mc, transition:'border .2s' }} />
+                        onChange={e => !isLocked && savePred(m.id, 'v', e.target.value)} placeholder="–"
+                        readOnly={isLocked}
+                        style={{ width:40, height:40, textAlign:'center', fontSize:20, fontWeight:900, borderRadius:8, border:`2px solid ${pv!==''?mc:isLocked?'rgba(255,255,255,0.05)':'rgba(255,255,255,0.1)'}`, background: isLocked ? 'rgba(255,255,255,0.04)' : `${mc}18`, color: isLocked ? '#3a5070' : mc, transition:'border .2s', cursor: isLocked ? 'not-allowed' : 'text' }} />
                     </div>
                     <div style={{ flex:1, textAlign:'left', fontSize:13, fontWeight:700 }}>{m.vis}</div>
                   </div>
 
-                  {/* Admin: real result */}
-                  {isCreator && (
+                  {/* Real result - admin edits, everyone sees */}
+                  {isCreator ? (
                     <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:10, paddingTop:10, borderTop:'1px solid rgba(255,255,255,0.06)' }}>
                       <span style={{ fontSize:11, color:'#2a9d8f', fontWeight:700 }}>✅ Real:</span>
                       <input type="text" inputMode="numeric" maxLength={2} value={rl}
@@ -318,14 +346,18 @@ export default function Game() {
                       <input type="text" inputMode="numeric" maxLength={2} value={rv}
                         onChange={e => saveReal(m.id, 'v', e.target.value)}
                         style={{ width:34, height:30, textAlign:'center', fontSize:14, fontWeight:700, borderRadius:6, border:'1.5px solid rgba(42,157,143,.4)', background:'rgba(42,157,143,.12)', color:'#2a9d8f' }} />
-                      <span style={{ fontSize:10, color:'#1a3020', marginLeft:4 }}>Solo tú (admin)</span>
                     </div>
-                  )}
-                  {!isCreator && hasReal && (
+                  ) : (
                     <div style={{ textAlign:'center', marginTop:8 }}>
-                      <span style={{ fontSize:11, color:'#2a9d8f', background:'rgba(42,157,143,.12)', padding:'2px 12px', borderRadius:20 }}>
-                        ✅ Resultado: {rl} – {rv}
-                      </span>
+                      {hasReal ? (
+                        <span style={{ fontSize:11, color:'#2a9d8f', background:'rgba(42,157,143,.12)', padding:'2px 12px', borderRadius:20 }}>
+                          ✅ Resultado: {rl} – {rv}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize:11, color:'#2a4060', background:'rgba(255,255,255,.04)', padding:'2px 12px', borderRadius:20 }}>
+                          ⏳ Pendiente
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -502,6 +534,17 @@ export default function Game() {
               onClick={() => { localStorage.removeItem(`player_${code}`); nav('/') }}>
               🚪 Salir del grupo
             </button>
+
+            {/* Personal link */}
+            <div className="card fade-up" style={{ marginTop:14, animationDelay:'.16s', background:'rgba(255,215,0,0.06)', border:'1px solid rgba(255,215,0,0.2)' }}>
+              <div style={{ fontSize:13, fontWeight:700, color:'#ffd700', marginBottom:8 }}>🔑 Tu enlace personal</div>
+              <div style={{ fontSize:11, color:'#3a5070', marginBottom:10 }}>Guarda este enlace para entrar desde cualquier dispositivo sin volver a registrarte:</div>
+              <div style={{ fontSize:10, color:'#ffd700', wordBreak:'break-all', background:'rgba(255,215,0,0.08)', padding:'8px 12px', borderRadius:8, marginBottom:10 }}>{myPersonalUrl}</div>
+              <button onClick={() => { navigator.clipboard?.writeText(myPersonalUrl); setCopied(true); setTimeout(()=>setCopied(false),2000) }}
+                className="btn btn-ghost" style={{ width:'100%', fontSize:13, border:'1px solid rgba(255,215,0,0.3)', color:'#ffd700' }}>
+                {copied ? '✓ ¡Copiado!' : '📋 Copiar mi enlace personal'}
+              </button>
+            </div>
           </div>
         )}
       </div>
