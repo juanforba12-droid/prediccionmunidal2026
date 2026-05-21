@@ -33,8 +33,10 @@ export default function Auth() {
       if (e.message.includes('Invalid login credentials')) setError('Email o contraseña incorrectos')
       else if (e.message.includes('Email not confirmed')) setError('Email no confirmado. Contacta con el administrador.')
       else setError(e.message)
+      setLoading(false)
+    } else {
+      nav('/')
     }
-    setLoading(false)
   }
 
   const handleRegister = async () => {
@@ -50,19 +52,19 @@ export default function Auth() {
 
     if (e) { setError(e.message); setLoading(false); return }
 
-    // Save profile
     if (data?.user?.id) {
       await supabase.from('profiles').upsert({ id: data.user.id, name: name.trim() })
-      // Try to auto-confirm and login
-      const { error: loginErr } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(), password
-      })
-      if (loginErr) {
-        // Email confirmation required
-        setSuccess('¡Cuenta creada! Inicia sesión con tu email y contraseña.')
-        setMode('login')
-      }
-      // If no error, onAuthStateChange will redirect automatically
+    }
+
+    // Always try to login right after register
+    const { error: loginErr } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(), password
+    })
+    if (loginErr) {
+      setError('Cuenta creada. Inicia sesión.')
+      setMode('login')
+    } else {
+      nav('/')
     }
     setLoading(false)
   }
