@@ -12,13 +12,14 @@ export default function Auth() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  // If already logged in, redirect home
+  // Handle OAuth callback (Google redirect)
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) nav('/')
+    })
+    // Check if we have a session already
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) nav('/')
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) nav('/')
     })
     return () => subscription.unsubscribe()
   }, [])
@@ -85,7 +86,7 @@ export default function Auth() {
     setLoading(true)
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin }
+      options: { redirectTo: `${window.location.origin}/auth` }
     })
   }
 
