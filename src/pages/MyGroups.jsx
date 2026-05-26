@@ -13,22 +13,15 @@ export default function MyGroups() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { nav('/auth'); return }
       setUser(user)
-
       const { data: players } = await supabase
         .from('players')
         .select('*, groups(*)')
         .eq('user_id', user.id)
-
       setGroups(players || [])
       setLoading(false)
     }
     load()
   }, [nav])
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    nav('/auth')
-  }
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario'
 
@@ -40,11 +33,16 @@ export default function MyGroups() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f0f1a', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ color: '#e53935', fontWeight: 800, fontSize: 18, letterSpacing: 1 }}>QUINIELA 2026</div>
+      {/* Top bar */}
+      <div style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>{user?.email}</span>
-          <button onClick={handleSignOut} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '6px 14px', color: '#fff', cursor: 'pointer', fontSize: 13 }}>Salir</button>
+          <button onClick={() => nav('/')} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 14px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+            ← Menu
+          </button>
+          <div style={{ color: '#e53935', fontWeight: 800, fontSize: 18, letterSpacing: 1 }}>PREDICCION</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>{user?.email}</span>
         </div>
       </div>
 
@@ -68,8 +66,8 @@ export default function MyGroups() {
         {groups.length === 0 ? (
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>⚽</div>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, marginBottom: 8 }}>Aún no estás en ningún grupo</div>
-            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Crea uno o únete con un código.</div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, marginBottom: 8 }}>Aun no estas en ningun grupo</div>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Crea uno o unete con un codigo.</div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -78,7 +76,7 @@ export default function MyGroups() {
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '20px 24px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ color: '#fff', fontWeight: 700, fontSize: 17, marginBottom: 4 }}>{p.groups.name}</div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Código: {p.groups.code}</div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Codigo: {p.groups.code}</div>
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }}>›</div>
               </div>
