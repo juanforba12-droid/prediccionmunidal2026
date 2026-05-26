@@ -12,15 +12,6 @@ function getItems(categoria) {
   }
 }
 
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
-
 export default function MentirosoGame() {
   const { code } = useParams()
   const nav = useNavigate()
@@ -31,38 +22,42 @@ export default function MentirosoGame() {
   const [loading, setLoading] = useState(true)
   const [votoLocal, setVotoLocal] = useState(null)
   const chatRef = useRef(null)
-
-  const myIdRef = useRef(null)
+  const pollRef = useRef(null)
+  const sessionRef = useRef(null)
 
   useEffect(() => {
     const uid = localStorage.getItem(`mentiroso_uid_${code}`)
     const nombre = localStorage.getItem(`mentiroso_nombre_${code}`)
     if (!uid) { nav('/mentiroso'); return }
     setMyId(uid)
-    myIdRef.current = uid
     setMyNombre(nombre || '')
     loadSession()
-  }, [code])
-
-  const loadSession = useCallback(async () => {
-    const { data } = await supabase.from('mentiroso_sessions').select('*').eq('code', code).single()
-    if (data) setSession(data)
-    setLoading(false)
+    // Poll cada 1.5 segundos
+    pollRef.current = setInterval(loadSession, 1500)
+    return () => clearInterval(pollRef.current)
   }, [code])
 
   useEffect(() => {
-    const ch = supabase.channel(`mentiroso-${code}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentiroso_sessions', filter: `code=eq.${code}` },
-        payload => { if (payload.new) setSession(payload.new) })
-      .subscribe()
-    return () => supabase.removeChannel(ch)
-  }, [code])
+    sessionRef.current = session
+  }, [session])
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
   }, [session?.chat])
 
-  // ── Acciones del creador ──────────────────────────────────
+  const loadSession = useCallback(async () => {
+    const { data } = await supabase.from('mentiroso_sessions').select('*').eq('code', code).single()
+    if (data) {
+      setSession(data)
+      setLoading(false)
+    }
+  }, [code])
+
+  const update = async (changes) => {
+    await supabase.from('mentiroso_sessions').update(changes).eq('code', code)
+    await loadSession()
+  }
+
   const iniciarPartida = async () => {
     const jugadores = session.jugadores
     if (jugadores.length < 3) { alert('Necesitas al menos 3 jugadores'); return }
@@ -71,33 +66,44 @@ export default function MentirosoGame() {
     const impostor = jugadores[Math.floor(Math.random() * jugadores.length)].id
     const asignaciones = {}
     jugadores.forEach(j => { asignaciones[j.id] = j.id === impostor ? 'IMPOSTOR' : palabra })
-    await supabase.from('mentiroso_sessions').update({
+    await update({
       estado: 'jugando', palabra, impostor_id: impostor,
       asignaciones, ronda: (session.ronda || 0) + 1,
       turno_idx: 0, votos: {}, chat: [],
       eliminados: session.eliminados || []
-    }).eq('code', code)
+    })
   }
 
-  const siguienteTurno = async () => {
+  const enviarMensaje = async () => {
+    if (!mensaje.trim()) return
     const activos = session.jugadores.filter(j => !(session.eliminados || []).includes(j.id))
+    const turnoActual = activos[session.turno_idx || 0]
+    const uid = localStorage.getItem(`mentiroso_uid_${code}`)
+    if (turnoActual?.id !== uid) return
+    const palabraEnviada = mensaje.trim().split(' ')[0]
+    const chat = [...(session.chat || []), {
+      id: uid, nombre: myNombre || localStorage.getItem(`mentiroso_nombre_${code}`),
+      texto: palabraEnviada, ts: Date.now()
+    }]
+    setMensaje('')
     const nextIdx = ((session.turno_idx || 0) + 1) % activos.length
     const todosHablaron = nextIdx === 0
-    await supabase.from('mentiroso_sessions').update({
+    await update({
+      chat,
       turno_idx: nextIdx,
       estado: todosHablaron ? 'votacion' : 'jugando'
-    }).eq('code', code)
+    })
   }
 
   const votar = async (votadoId) => {
     if (votoLocal) return
+    const uid = localStorage.getItem(`mentiroso_uid_${code}`)
     setVotoLocal(votadoId)
-    const votos = { ...(session.votos || {}), [myId]: votadoId }
+    const votos = { ...(session.votos || {}), [uid]: votadoId }
     const activos = session.jugadores.filter(j => !(session.eliminados || []).includes(j.id))
     const todosVotaron = activos.every(j => votos[j.id])
 
     if (todosVotaron) {
-      // Contar votos
       const conteo = {}
       Object.values(votos).forEach(v => { conteo[v] = (conteo[v] || 0) + 1 })
       const maxVotos = Math.max(...Object.values(conteo))
@@ -108,44 +114,24 @@ export default function MentirosoGame() {
       const soloQuedanDos = activosRestantes.length <= 2
 
       if (impostorEliminado) {
-        await supabase.from('mentiroso_sessions').update({
-          votos, eliminados, estado: 'fin', ganador: 'jugadores'
-        }).eq('code', code)
+        await update({ votos, eliminados, estado: 'fin', ganador: 'jugadores' })
       } else if (soloQuedanDos) {
-        await supabase.from('mentiroso_sessions').update({
-          votos, eliminados, estado: 'fin', ganador: 'impostor'
-        }).eq('code', code)
+        await update({ votos, eliminados, estado: 'fin', ganador: 'impostor' })
       } else {
-        // Nueva ronda de chat
-        await supabase.from('mentiroso_sessions').update({
-          votos, eliminados, estado: 'jugando',
-          turno_idx: 0, chat: [], votos: {}
-        }).eq('code', code)
         setVotoLocal(null)
+        await update({ votos, eliminados, estado: 'jugando', turno_idx: 0, chat: [], votos: {} })
       }
     } else {
-      await supabase.from('mentiroso_sessions').update({ votos }).eq('code', code)
+      await update({ votos })
     }
-  }
-
-  const enviarMensaje = async () => {
-    if (!mensaje.trim()) return
-    const activos = session.jugadores.filter(j => !(session.eliminados || []).includes(j.id))
-    const turnoActual = activos[session.turno_idx || 0]
-    if (turnoActual?.id !== myId) return
-    const chat = [...(session.chat || []), { id: myId, nombre: myNombre, texto: mensaje.trim(), ts: Date.now() }]
-    setMensaje('')
-    await supabase.from('mentiroso_sessions').update({ chat }).eq('code', code)
-    // Auto avanzar turno
-    await siguienteTurno()
   }
 
   const nuevaPartida = async () => {
     setVotoLocal(null)
-    await supabase.from('mentiroso_sessions').update({
+    await update({
       estado: 'esperando', palabra: null, impostor_id: null,
       asignaciones: {}, votos: {}, chat: [], eliminados: [], ganador: null
-    }).eq('code', code)
+    })
   }
 
   if (loading || !session) return (
@@ -154,23 +140,23 @@ export default function MentirosoGame() {
     </div>
   )
 
+  const uid = localStorage.getItem(`mentiroso_uid_${code}`)
   const jugadores = session.jugadores || []
   const activos = jugadores.filter(j => !(session.eliminados || []).includes(j.id))
   const eliminados = session.eliminados || []
-  const isCreator = jugadores[0]?.id === myId
+  const isCreator = jugadores[0]?.id === uid
   const asignaciones = session.asignaciones || {}
-  const miPalabra = asignaciones[myId]
+  const miPalabra = asignaciones[uid]
   const turnoActual = activos[session.turno_idx || 0]
-  const esMiTurno = turnoActual?.id === myId
+  const esMiTurno = turnoActual?.id === uid
   const votos = session.votos || {}
-  const yoVote = votos[myId]
-  const soyEliminado = eliminados.includes(myId)
+  const yoVote = votos[uid]
+  const soyEliminado = eliminados.includes(uid)
 
-  const p = { fontFamily:'system-ui,sans-serif', minHeight:'100vh', background:'linear-gradient(135deg,#0a0a1a,#0d0d20)', color:'#e8eaf0', padding:'16px 16px 80px' }
   const card = { background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16, marginBottom:12 }
 
   return (
-    <div style={p}>
+    <div style={{ fontFamily:'system-ui,sans-serif', minHeight:'100vh', background:'linear-gradient(135deg,#0a0a1a,#0d0d20)', color:'#e8eaf0', padding:'16px 16px 80px' }}>
       <div style={{ maxWidth:500, margin:'0 auto' }}>
 
         {/* Header */}
@@ -189,7 +175,7 @@ export default function MentirosoGame() {
               {jugadores.map(j => (
                 <div key={j.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ width:32, height:32, borderRadius:8, background:'rgba(155,93,229,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#9b5de5' }}>{j.nombre[0]}</div>
-                  <div style={{ flex:1, fontWeight:600 }}>{j.nombre} {j.id === myId ? '(tú)' : ''}</div>
+                  <div style={{ flex:1, fontWeight:600 }}>{j.nombre} {j.id === uid ? '(tú)' : ''}</div>
                   {j.id === jugadores[0]?.id && <span style={{ fontSize:11, color:'#f4a261' }}>👑 Host</span>}
                 </div>
               ))}
@@ -197,14 +183,13 @@ export default function MentirosoGame() {
 
             <div style={{ ...card, textAlign:'center', background:'rgba(155,93,229,0.06)', border:'1px solid rgba(155,93,229,0.2)' }}>
               <div style={{ fontSize:13, color:'rgba(255,255,255,0.4)', marginBottom:4 }}>Categoria</div>
-              <div style={{ fontSize:20, fontWeight:700, color:'#9b5de5', textTransform:'uppercase', marginBottom:4 }}>{session.categoria}</div>
-              <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>A cada jugador le saldra un {session.categoria === 'jugadores' ? 'jugador' : session.categoria === 'clubes' ? 'club' : 'seleccion'}. Uno es el impostor.</div>
+              <div style={{ fontSize:20, fontWeight:700, color:'#9b5de5', textTransform:'uppercase' }}>{session.categoria}</div>
             </div>
 
             {jugadores.length < 3 && (
-              <div style={{ textAlign:'center', padding:'12px', background:'rgba(244,162,97,0.08)', border:'1px solid rgba(244,162,97,0.2)', borderRadius:12, marginBottom:12 }}>
-                <div style={{ fontSize:13, color:'#f4a261' }}>Esperando jugadores... ({jugadores.length}/3 minimo)</div>
-                <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:4 }}>Comparte el codigo: <strong style={{ color:'#9b5de5', letterSpacing:2 }}>{code}</strong></div>
+              <div style={{ textAlign:'center', padding:12, background:'rgba(244,162,97,0.08)', border:'1px solid rgba(244,162,97,0.2)', borderRadius:12, marginBottom:12 }}>
+                <div style={{ fontSize:13, color:'#f4a261' }}>Esperando... ({jugadores.length}/3 minimo)</div>
+                <div style={{ fontSize:13, color:'#9b5de5', fontWeight:700, letterSpacing:3, marginTop:4 }}>{code}</div>
               </div>
             )}
 
@@ -219,40 +204,34 @@ export default function MentirosoGame() {
           </div>
         )}
 
-        {/* JUGANDO */}
+        {/* JUGANDO / VOTACION */}
         {(session.estado === 'jugando' || session.estado === 'votacion') && (
           <div>
             {/* Mi palabra */}
-            {!soyEliminado && miPalabra && (
+            {miPalabra && (
               <div style={{ ...card, background: miPalabra === 'IMPOSTOR' ? 'rgba(230,57,70,0.1)' : 'rgba(42,157,143,0.1)', border: miPalabra === 'IMPOSTOR' ? '1px solid rgba(230,57,70,0.3)' : '1px solid rgba(42,157,143,0.3)', textAlign:'center' }}>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,0.4)', marginBottom:6 }}>Tu palabra es</div>
-                <div style={{ fontSize: miPalabra === 'IMPOSTOR' ? 28 : 22, fontWeight:800, color: miPalabra === 'IMPOSTOR' ? '#e63946' : '#2a9d8f', letterSpacing: miPalabra === 'IMPOSTOR' ? 4 : 1 }}>{miPalabra}</div>
-                {miPalabra === 'IMPOSTOR' && <div style={{ fontSize:12, color:'rgba(230,57,70,0.7)', marginTop:6 }}>Intenta pasar desapercibido. No sabes la palabra.</div>}
-                {miPalabra !== 'IMPOSTOR' && <div style={{ fontSize:12, color:'rgba(42,157,143,0.7)', marginTop:6 }}>No digas la palabra directamente. Di algo relacionado.</div>}
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.4)', marginBottom:6 }}>{soyEliminado ? 'Fuiste eliminado. La palabra era:' : 'Tu palabra es'}</div>
+                <div style={{ fontSize: miPalabra === 'IMPOSTOR' ? 28 : 22, fontWeight:800, color: miPalabra === 'IMPOSTOR' ? '#e63946' : '#2a9d8f' }}>{soyEliminado ? session.palabra : miPalabra}</div>
+                {!soyEliminado && miPalabra === 'IMPOSTOR' && <div style={{ fontSize:12, color:'rgba(230,57,70,0.7)', marginTop:6 }}>Eres el impostor. No sabes la palabra. Intenta pasar desapercibido.</div>}
+                {!soyEliminado && miPalabra !== 'IMPOSTOR' && <div style={{ fontSize:12, color:'rgba(42,157,143,0.7)', marginTop:6 }}>Di algo relacionado. No digas la palabra directamente.</div>}
               </div>
             )}
 
-            {soyEliminado && (
-              <div style={{ ...card, background:'rgba(230,57,70,0.08)', border:'1px solid rgba(230,57,70,0.2)', textAlign:'center' }}>
-                <div style={{ fontSize:28, marginBottom:8 }}>💀</div>
-                <div style={{ fontSize:16, color:'#e63946', fontWeight:700 }}>Has sido eliminado</div>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,0.3)', marginTop:4 }}>La palabra era: <strong style={{ color:'#2a9d8f' }}>{session.palabra}</strong></div>
-              </div>
-            )}
-
-            {/* Turno actual */}
+            {/* Turno */}
             {session.estado === 'jugando' && (
               <div style={{ ...card, textAlign:'center', background: esMiTurno ? 'rgba(155,93,229,0.12)' : 'rgba(255,255,255,0.03)', border: esMiTurno ? '1px solid rgba(155,93,229,0.4)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize:12, color:'rgba(255,255,255,0.4)', marginBottom:4 }}>Turno de</div>
-                <div style={{ fontSize:20, fontWeight:700, color: esMiTurno ? '#9b5de5' : '#e8eaf0' }}>{esMiTurno ? 'TU TURNO' : turnoActual?.nombre}</div>
-                {esMiTurno && <div style={{ fontSize:12, color:'rgba(155,93,229,0.7)', marginTop:4 }}>Di una sola palabra relacionada</div>}
+                <div style={{ fontSize:20, fontWeight:700, color: esMiTurno ? '#9b5de5' : '#e8eaf0' }}>{esMiTurno ? 'ES TU TURNO' : turnoActual?.nombre}</div>
+                {esMiTurno && !soyEliminado && <div style={{ fontSize:12, color:'rgba(155,93,229,0.7)', marginTop:4 }}>Di una sola palabra</div>}
               </div>
             )}
 
             {/* Chat */}
             <div style={{ ...card, padding:0, overflow:'hidden' }}>
-              <div style={{ padding:'10px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)', fontSize:12, color:'#6a4090' }}>Chat de la partida</div>
-              <div ref={chatRef} style={{ height:200, overflowY:'auto', padding:'10px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+              <div style={{ padding:'10px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)', fontSize:12, color:'#6a4090' }}>
+                Ronda {session.ronda} · {session.estado === 'votacion' ? 'Hora de votar' : 'Chat'}
+              </div>
+              <div ref={chatRef} style={{ height:180, overflowY:'auto', padding:'10px 14px', display:'flex', flexDirection:'column', gap:8 }}>
                 {(session.chat || []).length === 0 && (
                   <div style={{ color:'rgba(255,255,255,0.2)', fontSize:13, textAlign:'center', marginTop:20 }}>Nadie ha hablado aun...</div>
                 )}
@@ -261,14 +240,14 @@ export default function MentirosoGame() {
                     <div style={{ width:28, height:28, borderRadius:7, background:'rgba(155,93,229,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, color:'#9b5de5', flexShrink:0 }}>{m.nombre[0]}</div>
                     <div>
                       <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginBottom:2 }}>{m.nombre}</div>
-                      <div style={{ fontSize:15, fontWeight:600, color: m.id === myId ? '#9b5de5' : '#e8eaf0' }}>{m.texto}</div>
+                      <div style={{ fontSize:15, fontWeight:600, color: m.id === uid ? '#9b5de5' : '#e8eaf0' }}>{m.texto}</div>
                     </div>
                   </div>
                 ))}
               </div>
               {esMiTurno && !soyEliminado && session.estado === 'jugando' && (
                 <div style={{ padding:'10px 14px', borderTop:'1px solid rgba(255,255,255,0.06)', display:'flex', gap:8 }}>
-                  <input value={mensaje} onChange={e => setMensaje(e.target.value.split(' ')[0])}
+                  <input value={mensaje} onChange={e => setMensaje(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && enviarMensaje()}
                     placeholder="Una sola palabra..."
                     style={{ flex:1, padding:'10px 14px', borderRadius:10, border:'1px solid rgba(155,93,229,0.3)', background:'rgba(155,93,229,0.06)', color:'#e8eaf0', fontSize:14, outline:'none' }} />
@@ -277,16 +256,16 @@ export default function MentirosoGame() {
               )}
             </div>
 
-            {/* Jugadores activos */}
+            {/* Jugadores */}
             <div style={card}>
-              <div style={{ fontSize:12, color:'#6a4090', marginBottom:10 }}>Jugadores ({activos.length} activos)</div>
+              <div style={{ fontSize:12, color:'#6a4090', marginBottom:10 }}>Jugadores</div>
               <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                 {jugadores.map(j => {
                   const isElim = eliminados.includes(j.id)
                   const isTurno = turnoActual?.id === j.id && session.estado === 'jugando'
                   return (
                     <div key={j.id} style={{ padding:'6px 12px', borderRadius:20, fontSize:13, fontWeight:600, background: isElim ? 'rgba(255,255,255,0.03)' : isTurno ? 'rgba(155,93,229,0.2)' : 'rgba(255,255,255,0.06)', color: isElim ? 'rgba(255,255,255,0.2)' : isTurno ? '#9b5de5' : '#e8eaf0', border: isTurno ? '1px solid rgba(155,93,229,0.4)' : '1px solid transparent', textDecoration: isElim ? 'line-through' : 'none' }}>
-                      {j.nombre} {j.id === myId ? '(tú)' : ''}
+                      {j.nombre} {j.id === uid ? '(tú)' : ''}
                     </div>
                   )
                 })}
@@ -298,7 +277,7 @@ export default function MentirosoGame() {
               <div style={{ ...card, background:'rgba(244,162,97,0.06)', border:'1px solid rgba(244,162,97,0.2)' }}>
                 <div style={{ fontWeight:700, fontSize:16, color:'#f4a261', marginBottom:4 }}>Hora de votar</div>
                 <div style={{ fontSize:12, color:'rgba(255,255,255,0.4)', marginBottom:14 }}>Vota a quien crees que es el impostor</div>
-                {activos.filter(j => j.id !== myId).map(j => {
+                {activos.filter(j => j.id !== uid).map(j => {
                   const votosAEste = Object.values(votos).filter(v => v === j.id).length
                   return (
                     <button key={j.id} onClick={() => !yoVote && votar(j.id)} disabled={!!yoVote}
@@ -316,14 +295,14 @@ export default function MentirosoGame() {
 
         {/* FIN */}
         {session.estado === 'fin' && (
-          <div style={{ textAlign:'center' }}>
+          <div style={{ textAlign:'center', paddingTop:40 }}>
             <div style={{ fontSize:64, marginBottom:16 }}>{session.ganador === 'jugadores' ? '🎉' : '🎭'}</div>
-            <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:36, color: session.ganador === 'jugadores' ? '#2a9d8f' : '#e63946', letterSpacing:4, marginBottom:8 }}>
+            <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:32, color: session.ganador === 'jugadores' ? '#2a9d8f' : '#e63946', letterSpacing:3, marginBottom:16 }}>
               {session.ganador === 'jugadores' ? 'GANARON LOS JUGADORES' : 'GANO EL IMPOSTOR'}
             </div>
-            <div style={{ fontSize:16, color:'rgba(255,255,255,0.5)', marginBottom:8 }}>La palabra era:</div>
-            <div style={{ fontSize:28, fontWeight:800, color:'#9b5de5', marginBottom:8 }}>{session.palabra}</div>
-            <div style={{ fontSize:14, color:'rgba(255,255,255,0.4)', marginBottom:24 }}>
+            <div style={{ fontSize:14, color:'rgba(255,255,255,0.5)', marginBottom:6 }}>La palabra era</div>
+            <div style={{ fontSize:28, fontWeight:800, color:'#9b5de5', marginBottom:12 }}>{session.palabra}</div>
+            <div style={{ fontSize:14, color:'rgba(255,255,255,0.4)', marginBottom:32 }}>
               El impostor era: <strong style={{ color:'#e63946' }}>{jugadores.find(j => j.id === session.impostor_id)?.nombre}</strong>
             </div>
             {isCreator && (
@@ -331,7 +310,7 @@ export default function MentirosoGame() {
                 Jugar de nuevo
               </button>
             )}
-            <div style={{ marginTop:8 }}>
+            <div>
               <button onClick={() => nav('/mentiroso')} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', fontSize:14 }}>Salir</button>
             </div>
           </div>
