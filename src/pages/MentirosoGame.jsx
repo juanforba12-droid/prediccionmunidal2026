@@ -119,7 +119,7 @@ export default function MentirosoGame() {
         await update({ votos, eliminados, estado: 'fin', ganador: 'impostor' })
       } else {
         setVotoLocal(null)
-        await update({ votos, eliminados, estado: 'jugando', turno_idx: 0, chat: [], votos: {} })
+        await update({ votos, eliminados, estado: 'jugando', turno_idx: 0, chat: [], votos: {}, ronda: (session.ronda || 1) + 1 })
       }
     } else {
       await update({ votos })
