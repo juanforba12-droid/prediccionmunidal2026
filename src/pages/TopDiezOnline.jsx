@@ -182,15 +182,23 @@ export default function TopDiezOnline() {
     })
   }
 
-  const salir = async () => {
+  const salir = () => {
+    // Solo vuelve al menú — la sesión sigue guardada para poder volver
+    clearInterval(pollRef.current)
+    setSession(null)
+    setScreen('menu')
+  }
+
+  const abandonarSesion = async () => {
+    // Salir definitivamente de la sesión (eliminar jugador)
     if (session) {
       const jugadores = session.jugadores.filter(j => j.id !== myUid)
       if (jugadores.length === 0) {
         await supabase.from('topdiezgame_sessions').delete().eq('code', session.code)
-        quitarSesionLocal(session.code)
       } else {
         await update({ jugadores })
       }
+      quitarSesionLocal(session.code)
     }
     clearInterval(pollRef.current)
     setSession(null)
@@ -295,7 +303,8 @@ export default function TopDiezOnline() {
           </button>
         )}
         {session.creator_id !== myUid && <div style={{ fontSize:13, color:'#6a5a8a', marginBottom:10 }}>Esperando a que el host empiece...</div>}
-        <button onClick={salir} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#6a5a8a', fontSize:13, cursor:'pointer' }}>Salir</button>
+        <button onClick={salir} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#6a5a8a', fontSize:13, cursor:'pointer', marginBottom:8 }}>← Salir al menú</button>
+        <button onClick={abandonarSesion} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(239,68,68,0.2)', background:'none', color:'#f87171', fontSize:12, cursor:'pointer' }}>Abandonar partida</button>
       </div>
     </div>
   )
@@ -460,8 +469,11 @@ export default function TopDiezOnline() {
             </div>
           )}
 
-          <button onClick={salir} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#6a5a8a', fontSize:13, cursor:'pointer' }}>
-            Salir
+          <button onClick={salir} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#6a5a8a', fontSize:13, cursor:'pointer', marginBottom:6 }}>
+            ← Salir al menú
+          </button>
+          <button onClick={abandonarSesion} style={{ width:'100%', padding:8, borderRadius:10, border:'1px solid rgba(239,68,68,0.15)', background:'none', color:'#f87171', fontSize:11, cursor:'pointer' }}>
+            Abandonar partida
           </button>
           </div>{/* fin contenido principal */}
         </div>{/* fin layout flex */}
