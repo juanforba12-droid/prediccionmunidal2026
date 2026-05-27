@@ -60,6 +60,7 @@ export default function Home() {
 
       {/* Game cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 420 }}>
+
         <button onClick={() => nav('/prediccion')} style={{
           background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.3)',
           borderRadius: 20, padding: '28px 24px', cursor: 'pointer', textAlign: 'left',
@@ -103,6 +104,29 @@ export default function Home() {
             ))}
           </div>
         </button>
+
+        <button onClick={() => nav('/topdiezgame')} style={{
+          background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)',
+          borderRadius: 20, padding: '28px 24px', cursor: 'pointer', textAlign: 'left',
+          outline: 'none', boxShadow: '0 4px 24px rgba(251,191,36,0.1)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 10 }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>🏆</div>
+            <div>
+              <div style={{ color: '#fbbf24', fontWeight: 800, fontSize: 22, letterSpacing: 1 }}>TOP 10</div>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Adivina el top fútbol</div>
+            </div>
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.5 }}>
+            Adivina los máximos goleadores y tops históricos. Solo o con amigos por turnos.
+          </div>
+          <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {['Individual', 'Online turnos', '27 temporadas'].map(t => (
+              <span key={t} style={{ fontSize: 11, color: '#fbbf24', background: 'rgba(251,191,36,0.1)', padding: '3px 10px', borderRadius: 20 }}>{t}</span>
+            ))}
+          </div>
+        </button>
+
       </div>
 
       <div style={{ marginTop: 40, color: 'rgba(255,255,255,0.15)', fontSize: 12, letterSpacing: 2 }}>JFEE © 2026</div>
