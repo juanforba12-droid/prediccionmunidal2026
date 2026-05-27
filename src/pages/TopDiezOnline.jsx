@@ -103,9 +103,13 @@ export default function TopDiezOnline() {
     const code = codigoInput.toUpperCase()
     const { data: s } = await supabase.from('topdiezgame_sessions').select('*').eq('code', code).single()
     if (!s) { setError('Sesión no encontrada'); setLoading(false); return }
-    if (s.estado !== 'esperando') { setError('La partida ya empezó'); setLoading(false); return }
     const jugadores = [...(s.jugadores || [])]
-    if (!jugadores.find(j => j.id === myUid)) {
+    const yaEsta = jugadores.find(j => j.id === myUid)
+    if (!yaEsta && s.estado !== 'esperando') {
+      setError('La partida ya empezó y no eres parte de ella')
+      setLoading(false); return
+    }
+    if (!yaEsta) {
       jugadores.push({ id: myUid, nombre: myName.trim(), puntos: 0 })
       await supabase.from('topdiezgame_sessions').update({ jugadores }).eq('code', code)
     }
@@ -116,7 +120,7 @@ export default function TopDiezOnline() {
     localStorage.setItem('topdiezgame_sesiones', JSON.stringify(nuevas))
     setSesionesGuardadas(nuevas)
     await loadSession(code)
-    setScreen('sala')
+    setScreen(s.estado === 'esperando' ? 'sala' : 'jugando')
     setLoading(false)
   }
 
@@ -220,6 +224,18 @@ export default function TopDiezOnline() {
     setLoading(true)
     const { data } = await supabase.from('topdiezgame_sessions').select('*').eq('code', s.code).single()
     if (!data) { setError('Sesión no encontrada, puede que haya sido eliminada'); quitarSesionLocal(s.code); setLoading(false); return }
+    // Asegurarse de que seguimos siendo parte de la sesión
+    const jugadores = data.jugadores || []
+    const yaEsta = jugadores.find(j => j.id === myUid)
+    if (!yaEsta) {
+      // Nos añadimos de nuevo si la partida espera, si no error
+      if (data.estado === 'esperando') {
+        const nuevosJugadores = [...jugadores, { id: myUid, nombre: s.nombre, puntos: 0 }]
+        await supabase.from('topdiezgame_sessions').update({ jugadores: nuevosJugadores }).eq('code', s.code)
+      } else {
+        setError('Ya no eres parte de esta sesión'); quitarSesionLocal(s.code); setLoading(false); return
+      }
+    }
     setSession(data)
     setScreen(data.estado === 'esperando' ? 'sala' : 'jugando')
     setLoading(false)
