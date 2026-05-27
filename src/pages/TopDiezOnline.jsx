@@ -317,19 +317,64 @@ export default function TopDiezOnline() {
           <div style={{ fontSize:11, color:'#6a5a8a' }}>Código: <span style={{ color:'#fbbf24', fontWeight:700 }}>{session.code}</span></div>
         </div>
 
-        <div style={{ maxWidth:520, margin:'0 auto', padding:'14px 16px 0' }}>
+        {/* LAYOUT: sidebar izquierdo en desktop, arriba en móvil */}
+        <div style={{ display:'flex', minHeight:'calc(100vh - 49px)' }}>
 
-          {/* Marcador */}
-          <div style={{ display:'flex', gap:6, marginBottom:14, overflowX:'auto', paddingBottom:4 }}>
-            {session.jugadores?.map(j => (
-              <div key={j.id} style={{ flex:1, minWidth:80, padding:'8px 10px', borderRadius:10, background: j.id===jActual?.id ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)', border:`1px solid ${j.id===jActual?.id ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.07)'}`, textAlign:'center' }}>
-                <div style={{ fontSize:11, color: j.id===myUid ? '#fbbf24' : '#8a7aaa', fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{j.nombre}{j.id===myUid?' (tú)':''}</div>
-                <div style={{ fontSize:20, fontWeight:900, color: j.id===jActual?.id ? '#fbbf24' : '#c084fc' }}>{j.puntos||0}</div>
+          {/* SIDEBAR RANKING — fijo en desktop */}
+          <div style={{
+            width: 220, flexShrink:0,
+            padding:'20px 16px',
+            borderRight:'1px solid rgba(251,191,36,0.1)',
+            background:'rgba(0,0,0,0.2)',
+            display:'flex', flexDirection:'column', gap:8,
+            position:'sticky', top:49, height:'calc(100vh - 49px)',
+            overflowY:'auto',
+          }} className="sidebar-ranking">
+            <div style={{ fontSize:11, color:'#4a3a6a', letterSpacing:2, marginBottom:8, textTransform:'uppercase' }}>Clasificación</div>
+
+            {[...session.jugadores].sort((a,b) => (b.puntos||0)-(a.puntos||0)).map((j, i) => {
+              const esTurno = j.id === jActual?.id
+              const medals = ['🥇','🥈','🥉']
+              return (
+                <div key={j.id} style={{
+                  padding:'12px 14px', borderRadius:12,
+                  background: esTurno ? 'rgba(251,191,36,0.12)' : j.id===myUid ? 'rgba(192,132,252,0.08)' : 'rgba(255,255,255,0.04)',
+                  border:`1px solid ${esTurno ? 'rgba(251,191,36,0.4)' : j.id===myUid ? 'rgba(192,132,252,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                  transition:'all 0.3s',
+                }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                    <span style={{ fontSize:18 }}>{medals[i] || `${i+1}º`}</span>
+                    <div style={{ flex:1, fontSize:12, fontWeight:700, color: j.id===myUid ? '#fbbf24' : '#c8d8ea', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {j.nombre}{j.id===myUid ? ' (tú)' : ''}
+                    </div>
+                  </div>
+                  <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:36, color: esTurno ? '#fbbf24' : '#c084fc', lineHeight:1, textAlign:'center' }}>
+                    {j.puntos||0}
+                  </div>
+                  <div style={{ fontSize:10, color:'#4a3a6a', textAlign:'center', marginTop:2 }}>pts</div>
+                  {esTurno && !finRonda && (
+                    <div style={{ marginTop:8, fontSize:10, color:'#fbbf24', textAlign:'center', fontWeight:700, background:'rgba(251,191,36,0.1)', borderRadius:6, padding:'3px 0' }}>
+                      {j.id===myUid ? '👉 TU TURNO' : '⏳ SU TURNO'}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            <div style={{ marginTop:'auto', paddingTop:16, borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize:11, color:'#6a5a8a', marginBottom:6, textAlign:'center' }}>
+                {found}/10 encontrados
               </div>
-            ))}
+              <div style={{ height:4, borderRadius:2, background:'rgba(255,255,255,0.08)', overflow:'hidden' }}>
+                <div style={{ height:'100%', width:`${found*10}%`, background:'linear-gradient(90deg,#fbbf24,#f59e0b)', borderRadius:2, transition:'width 0.4s' }} />
+              </div>
+            </div>
           </div>
 
-          {/* Turno */}
+          {/* CONTENIDO PRINCIPAL */}
+          <div style={{ flex:1, maxWidth:520, margin:'0 auto', padding:'16px 16px 0' }}>
+
+          {/* Turno — solo en móvil o si no hay sidebar */}
           {!finRonda && (
             <div style={{ textAlign:'center', marginBottom:12, padding:'8px 16px', background: esMi ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)', borderRadius:10, border:`1px solid ${esMi ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.07)'}` }}>
               <div style={{ fontSize:13, fontWeight:700, color: esMi ? '#fbbf24' : '#8a7aaa' }}>
@@ -338,25 +383,20 @@ export default function TopDiezOnline() {
             </div>
           )}
 
-          {/* Progreso */}
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, padding:'8px 14px', background:'rgba(192,132,252,0.08)', borderRadius:10 }}>
-            <span style={{ fontSize:12, color:'#8a7aaa' }}>Encontrados</span>
-            <span style={{ fontSize:18, fontWeight:900, color:'#c084fc' }}>{found}<span style={{ fontSize:12, color:'#6a5a8a' }}>/10</span></span>
-          </div>
-
-          {/* Tabla */}
+          {/* Tabla top 10 */}
           <div style={{ display:'flex', flexDirection:'column', gap:5, marginBottom:14 }}>
             {cat.top10.map((item, i) => {
               const isRev = revealed[i]
               const isFinRev = finRonda && !revealed[i]
-              // Quién lo encontró
               const quien = session.historial?.find(h => h.pos === i+1)
               return (
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px', borderRadius:10, background: isRev ? 'rgba(34,197,94,0.1)' : isFinRev ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)', border:`1px solid ${isRev ? 'rgba(34,197,94,0.25)' : isFinRev ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)'}`, transition:'all 0.3s' }}>
                   <div style={{ width:24, height:24, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background: isRev ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.07)', fontSize:10, fontWeight:900, color: isRev ? '#22c55e' : '#6a5a8a' }}>{MEDALS[i]}</div>
                   <div style={{ flex:1 }}>
                     {isRev || isFinRev ? (
-                      <div style={{ fontSize:13, fontWeight:800, color: isRev ? '#86efac' : '#fca5a5' }}>{item.nombre} {quien && <span style={{ fontSize:10, color:'#fbbf24', fontWeight:400 }}>({quien.jugador})</span>}</div>
+                      <div style={{ fontSize:13, fontWeight:800, color: isRev ? '#86efac' : '#fca5a5' }}>
+                        {item.nombre} {quien && <span style={{ fontSize:10, color:'#fbbf24', fontWeight:400 }}>({quien.jugador})</span>}
+                      </div>
                     ) : (
                       <div style={{ height:11, borderRadius:3, background:'rgba(255,255,255,0.07)', width:`${45+Math.random()*40}%` }} />
                     )}
@@ -423,7 +463,9 @@ export default function TopDiezOnline() {
           <button onClick={salir} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#6a5a8a', fontSize:13, cursor:'pointer' }}>
             Salir
           </button>
-        </div>
+          </div>{/* fin contenido principal */}
+        </div>{/* fin layout flex */}
+        <style>{`@media(max-width:640px){.sidebar-ranking{display:none!important}}`}</style>
       </div>
     )
   }
