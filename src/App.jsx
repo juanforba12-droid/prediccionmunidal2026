@@ -9,6 +9,9 @@ import JoinGroup from './pages/JoinGroup.jsx'
 import Game from './pages/Game.jsx'
 import MentirosoHome from './pages/MentirosoHome.jsx'
 import MentirosoGame from './pages/MentirosoGame.jsx'
+import TopDiezHome from './pages/TopDiezHome.jsx'
+import TopDiezIndividual from './pages/TopDiezIndividual.jsx'
+import TopDiezOnline from './pages/TopDiezOnline.jsx'
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(undefined)
@@ -38,6 +41,10 @@ export default function App() {
       {/* Mentiroso */}
       <Route path="/mentiroso" element={<ProtectedRoute><MentirosoHome /></ProtectedRoute>} />
       <Route path="/mentiroso/:code" element={<ProtectedRoute><MentirosoGame /></ProtectedRoute>} />
+      {/* Top 10 */}
+      <Route path="/topdiezgame" element={<ProtectedRoute><TopDiezHome /></ProtectedRoute>} />
+      <Route path="/topdiezgame/individual" element={<ProtectedRoute><TopDiezIndividual /></ProtectedRoute>} />
+      <Route path="/topdiezgame/online" element={<ProtectedRoute><TopDiezOnline /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
