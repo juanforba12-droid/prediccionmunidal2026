@@ -151,12 +151,6 @@ export default function Game() {
     const er = extrasReal || {}
     let pts = 0
 
-    // Campeón 10pts, semifinalistas 5pts cada uno, 3er puesto 3pts
-    if (er.campeon && pp.campeon && pp.campeon.toLowerCase() === er.campeon.toLowerCase()) pts += 10
-    if (er.tercero && pp.tercero && pp.tercero.toLowerCase() === er.tercero.toLowerCase()) pts += 3
-    ;['semi1','semi2','semi3','semi4'].forEach(k => {
-      if (er[k] && pp[k] && pp[k].toLowerCase() === er[k].toLowerCase()) pts += 5
-    })
     // Goleadores: 5/3/1 pts
     if (er.gol1 && pp.gol1 && pp.gol1.toLowerCase() === er.gol1.toLowerCase()) pts += 5
     if (er.gol2 && pp.gol2 && pp.gol2.toLowerCase() === er.gol2.toLowerCase()) pts += 3
@@ -194,6 +188,12 @@ export default function Game() {
     navigator.clipboard?.writeText(shareUrl).catch(() => {})
     setCopied(true)
     setTimeout(() => setCopied(false), 2500)
+  }
+
+  const kickPlayer = async (playerId) => {
+    if (!isCreator) return
+    if (!window.confirm('¿Seguro que quieres echar a este jugador del grupo?')) return
+    await supabase.from('players').delete().eq('id', playerId)
   }
 
   if (loading) return (
@@ -386,48 +386,6 @@ export default function Game() {
               🎯 Predicciones especiales con puntos extra. Guarda tus predicciones antes de que empiece el torneo.
             </div>
 
-            {/* CLASIFICACIÓN FINAL */}
-            <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16 }}>
-              <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:4 }}>🏆 Clasificación final</div>
-              <div style={{ fontSize:11, color:'#2a4060', marginBottom:14 }}>10 pts campeón · 5 pts semifinalistas · 3 pts tercer puesto</div>
-
-              {[
-                { key:'campeon', label:'🥇 Campeón', pts:10 },
-                { key:'semi1', label:'🥈 Semifinalista 1', pts:5 },
-                { key:'semi2', label:'🥈 Semifinalista 2', pts:5 },
-                { key:'semi3', label:'🥈 Semifinalista 3', pts:5 },
-                { key:'semi4', label:'🥈 Semifinalista 4', pts:5 },
-                { key:'tercero', label:'🥉 Tercer puesto', pts:3 },
-              ].map(({ key, label, pts }) => {
-                const myVal = extras[key] || ''
-                const realVal = extrasReal[key] || ''
-                const hit = realVal && myVal && myVal.toLowerCase() === realVal.toLowerCase()
-                return (
-                  <div key={key} style={{ marginBottom:12 }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                      <span style={{ fontSize:12, fontWeight:700, color: hit ? '#2a9d8f' : '#a0b4cc' }}>{label}</span>
-                      <span style={{ fontSize:11, color:'#2a4060' }}>+{pts} pts</span>
-                    </div>
-                    <input list={`list-${key}`} placeholder="Escribe un equipo..." value={myVal}
-                      onChange={e => saveExtras({ ...extras, [key]: e.target.value })}
-                      style={inpStyle(!!myVal)} />
-                    <datalist id={`list-${key}`}>{EQUIPOS_MUNDIAL.map(e => <option key={e} value={e} />)}</datalist>
-                    {realVal && <div style={{ fontSize:11, color: hit?'#2a9d8f':'#e63946', marginTop:4 }}>
-                      {hit ? `⭐ ¡Acertado! +${pts} pts` : `Real: ${realVal}`}
-                    </div>}
-                    {isCreator && (
-                      <div style={{ marginTop:6 }}>
-                        <input list={`real-list-${key}`} placeholder={`Admin — ${label} real`} value={realVal}
-                          onChange={e => saveExtrasReal({ ...extrasReal, [key]: e.target.value })}
-                          style={realInpStyle} />
-                        <datalist id={`real-list-${key}`}>{EQUIPOS_MUNDIAL.map(e => <option key={e} value={e} />)}</datalist>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
             {/* MÁXIMO GOLEADOR */}
             <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16 }}>
               <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:4 }}>⚽ Máximo goleador</div>
@@ -513,8 +471,6 @@ export default function Game() {
                     </div>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                       {[
-                        ['🏆', ep.campeon], ['🥉', ep.tercero],
-                        ['4️⃣', ep.semi1], ['4️⃣', ep.semi2], ['4️⃣', ep.semi3], ['4️⃣', ep.semi4],
                         ['⚽1', ep.gol1], ['⚽2', ep.gol2], ['⚽3', ep.gol3],
                         ['🏅', ep.balon1], ['🥈', ep.balon2], ['🥉', ep.balon3],
                       ].filter(([,v]) => v).map(([icon, val], i) => (
@@ -652,7 +608,15 @@ export default function Game() {
                     </div>
                     {pl.id===group?.creator_id && <div style={{ fontSize:10, color:'#f4a261' }}>👑 Admin</div>}
                   </div>
-                  <div style={{ width:12, height:12, borderRadius:'50%', background:pl.color }} />
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:12, height:12, borderRadius:'50%', background:pl.color }} />
+                    {isCreator && pl.id !== myPlayer?.id && (
+                      <button onClick={() => kickPlayer(pl.id)}
+                        style={{ background:'rgba(230,57,70,0.12)', border:'1px solid rgba(230,57,70,0.3)', borderRadius:6, color:'#e63946', fontSize:11, padding:'3px 8px', cursor:'pointer', fontWeight:600 }}>
+                        Echar
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
