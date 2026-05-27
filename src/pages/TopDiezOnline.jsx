@@ -20,6 +20,7 @@ export default function TopDiezOnline() {
   const [feedback, setFeedback] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [sesionesGuardadas, setSesionesGuardadas] = useState([])
   const inputRef = useRef(null)
   const pollRef = useRef(null)
 
@@ -30,6 +31,8 @@ export default function TopDiezOnline() {
       const name = data.user?.user_metadata?.full_name || data.user?.email?.split('@')[0] || 'Jugador'
       setMyName(name)
     })
+    const saved = JSON.parse(localStorage.getItem('topdiezgame_sesiones') || '[]')
+    setSesionesGuardadas(saved)
   }, [])
 
   useEffect(() => {
@@ -83,6 +86,11 @@ export default function TopDiezOnline() {
     })
     if (err) { setError('Error al crear'); setLoading(false); return }
     localStorage.setItem(`topdiezgame_name_${code}`, myName.trim())
+    const saved = JSON.parse(localStorage.getItem('topdiezgame_sesiones') || '[]')
+    const nueva = { code, nombre: myName.trim(), uid: myUid, esHost: true }
+    const nuevas = [...saved.filter(s => s.code !== code), nueva]
+    localStorage.setItem('topdiezgame_sesiones', JSON.stringify(nuevas))
+    setSesionesGuardadas(nuevas)
     await loadSession(code)
     setScreen('sala')
     setLoading(false)
@@ -102,6 +110,11 @@ export default function TopDiezOnline() {
       await supabase.from('topdiezgame_sessions').update({ jugadores }).eq('code', code)
     }
     localStorage.setItem(`topdiezgame_name_${code}`, myName.trim())
+    const saved = JSON.parse(localStorage.getItem('topdiezgame_sesiones') || '[]')
+    const nueva = { code, nombre: myName.trim(), uid: myUid, esHost: false }
+    const nuevas = [...saved.filter(s => s.code !== code), nueva]
+    localStorage.setItem('topdiezgame_sesiones', JSON.stringify(nuevas))
+    setSesionesGuardadas(nuevas)
     await loadSession(code)
     setScreen('sala')
     setLoading(false)
@@ -174,6 +187,7 @@ export default function TopDiezOnline() {
       const jugadores = session.jugadores.filter(j => j.id !== myUid)
       if (jugadores.length === 0) {
         await supabase.from('topdiezgame_sessions').delete().eq('code', session.code)
+        quitarSesionLocal(session.code)
       } else {
         await update({ jugadores })
       }
@@ -181,6 +195,30 @@ export default function TopDiezOnline() {
     clearInterval(pollRef.current)
     setSession(null)
     setScreen('menu')
+  }
+
+  const quitarSesionLocal = (code) => {
+    const nuevas = sesionesGuardadas.filter(s => s.code !== code)
+    localStorage.setItem('topdiezgame_sesiones', JSON.stringify(nuevas))
+    setSesionesGuardadas(nuevas)
+  }
+
+  const eliminarSesion = async (code) => {
+    await supabase.from('topdiezgame_sessions').delete().eq('code', code)
+    quitarSesionLocal(code)
+  }
+
+  const volverASesion = async (s) => {
+    setLoading(true)
+    const { data } = await supabase.from('topdiezgame_sessions').select('*').eq('code', s.code).single()
+    if (!data) { setError('Sesión no encontrada, puede que haya sido eliminada'); quitarSesionLocal(s.code); setLoading(false); return }
+    setSession(data)
+    setScreen(data.estado === 'esperando' ? 'sala' : 'jugando')
+    setLoading(false)
+  }
+
+  const rendirse = async () => {
+    await update({ revealed: Array(10).fill(true), estado: 'fin_ronda' })
   }
 
   const inp = { width:'100%', padding:'12px 16px', borderRadius:10, border:'1px solid rgba(251,191,36,0.3)', background:'rgba(251,191,36,0.06)', color:'#e8e0f0', fontSize:15, boxSizing:'border-box', outline:'none', marginBottom:10 }
@@ -191,15 +229,38 @@ export default function TopDiezOnline() {
     <div style={{ minHeight:'100vh', background:'linear-gradient(160deg,#0f0c1a,#1a1030,#0c1520)', fontFamily:'system-ui,sans-serif', color:'#e8e0f0', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
       <div style={{ width:'100%', maxWidth:400 }}>
         <button onClick={() => nav('/topdiezgame')} style={{ background:'none', border:'none', color:'#6a5a8a', cursor:'pointer', fontSize:20, marginBottom:24 }}>←</button>
-        <div style={{ textAlign:'center', marginBottom:32 }}>
+        <div style={{ textAlign:'center', marginBottom:28 }}>
           <div style={{ fontSize:42, marginBottom:6 }}>🌐</div>
           <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:36, color:'#fbbf24', letterSpacing:4 }}>TOP 10 ONLINE</div>
         </div>
+
+        {/* Sesiones guardadas */}
+        {sesionesGuardadas.length > 0 && (
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:11, color:'#4a3a6a', letterSpacing:2, marginBottom:10, textTransform:'uppercase' }}>Tus partidas</div>
+            {sesionesGuardadas.map(s => (
+              <div key={s.code} style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(251,191,36,0.06)', border:'1px solid rgba(251,191,36,0.15)', borderRadius:12, padding:'10px 14px', marginBottom:8 }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, color:'#fbbf24', fontSize:16, letterSpacing:2 }}>{s.code}</div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>{s.nombre} · {s.esHost ? 'Host' : 'Jugador'}</div>
+                </div>
+                <button onClick={() => volverASesion(s)} disabled={loading} style={{ padding:'6px 14px', borderRadius:8, border:'none', background:'#fbbf24', color:'#0a0a1a', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                  Volver
+                </button>
+                <button onClick={() => s.esHost ? eliminarSesion(s.code) : quitarSesionLocal(s.code)}
+                  style={{ padding:'6px 10px', borderRadius:8, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.08)', color:'#f87171', fontSize:13, cursor:'pointer' }}>
+                  {s.esHost ? '🗑️' : '✕'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {error && <div style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:10, padding:'10px 14px', marginBottom:14, color:'#fca5a5', fontSize:14 }}>{error}</div>}
         <div style={{ color:'rgba(255,255,255,0.5)', fontSize:13, marginBottom:6 }}>Tu nombre</div>
         <input style={inp} value={myName} onChange={e => setMyName(e.target.value)} placeholder="Tu nombre" />
         <button onClick={crearSesion} disabled={loading} style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:'linear-gradient(135deg,#fbbf24,#f59e0b)', color:'#0a0a1a', fontSize:15, fontWeight:900, cursor:'pointer', marginBottom:12 }}>
-          {loading ? 'Creando...' : '+ Crear partida'}
+          {loading ? 'Cargando...' : '+ Crear partida'}
         </button>
         <div style={{ display:'flex', gap:8 }}>
           <input style={{ ...inp, marginBottom:0, flex:1 }} value={codigoInput} onChange={e => setCodigoInput(e.target.value.toUpperCase())} placeholder="Código" maxLength={6} />
@@ -330,6 +391,13 @@ export default function TopDiezOnline() {
             <div style={{ textAlign:'center', padding:'12px', background:'rgba(255,255,255,0.03)', borderRadius:10, marginBottom:10, fontSize:13, color:'#6a5a8a' }}>
               Esperando a {jActual?.nombre}...
             </div>
+          )}
+
+          {/* Rendirse — solo el host */}
+          {!finRonda && session.creator_id === myUid && (
+            <button onClick={rendirse} style={{ width:'100%', padding:11, borderRadius:10, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.08)', color:'#f87171', fontSize:13, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
+              🏳️ Rendirse — mostrar respuestas
+            </button>
           )}
 
           {/* Fin ronda */}
