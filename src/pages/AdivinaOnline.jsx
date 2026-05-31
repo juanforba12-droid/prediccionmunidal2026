@@ -66,6 +66,8 @@ export default function AdivinaOnline() {
   // Refs siempre actualizados
   const sessionRef = useRef(session)
   useEffect(() => { sessionRef.current = session }, [session])
+  const myUidRef = useRef(myUid)
+  useEffect(() => { myUidRef.current = myUid }, [myUid])
 
   // Timer local simple — 60 a 0, se reinicia cuando cambia la pista
   useEffect(() => {
@@ -84,13 +86,14 @@ export default function AdivinaOnline() {
         if (t <= 1) {
           clearInterval(timerRef.current)
           const s = sessionRef.current
-          if (s && s.estado_ronda === 'votando') {
-            const myJugador = s.jugadores.find(j => j.id === myUid)
+          const uid = myUidRef.current
+          if (s && uid && s.estado_ronda === 'votando') {
+            const myJugador = s.jugadores.find(j => j.id === uid)
             if (myJugador && !myJugador.eliminado) {
               setMiVoto('pista')
               // Tiempo acabado — rellenar votos de quien no ha votado con 'pista' y avanzar
               const activos = s.jugadores.filter(j => !j.eliminado)
-              const todosVotos = { ...(s.votos || {}) }
+              const todosVotos = { ...(s.votos || {}), [uid]: 'pista' }
               activos.forEach(j => { if (!todosVotos[j.id]) todosVotos[j.id] = 'pista' })
               const quierenAdivinar = activos.filter(j => todosVotos[j.id] === 'adivinar')
               if (quierenAdivinar.length > 0) {
