@@ -82,8 +82,8 @@ export default function AdivinaOnline() {
         setTimer(0)
         return
       }
-      const started = s.pista_started_at || Date.now()
-      const elapsed = Math.floor((Date.now() - started) / 1000)
+      if (!s.pista_started_at) { setTimer(TIMER_SECS); return }
+      const elapsed = Math.floor((Date.now() - s.pista_started_at) / 1000)
       const remaining = Math.max(0, TIMER_SECS - elapsed)
       setTimer(remaining)
     }, 500)
@@ -95,12 +95,24 @@ export default function AdivinaOnline() {
     if (!session || screen !== 'jugando') return
     if (session.estado !== 'jugando' || session.estado_ronda !== 'votando') return
     if (miVoto) return // ya voté
-    const started = session.pista_started_at || Date.now()
-    const elapsed = Math.floor((Date.now() - started) / 1000)
+    if (!session.pista_started_at) return
+    const elapsed = Math.floor((Date.now() - session.pista_started_at) / 1000)
     if (elapsed < TIMER_SECS) return // aún no se acabó
     // Se acabó el tiempo y no he votado — voto pista automáticamente
     handleVoto('pista', true)
-  }, [session?.votos, session?.pista_started_at, miVoto])
+  }, [session?.votos, session?.pista_started_at, session?.pista_actual, miVoto, screen])
+
+  // Backup timeout — garantiza que el auto-voto se dispara aunque el poll llegue tarde
+  useEffect(() => {
+    if (!session?.pista_started_at || screen !== 'jugando') return
+    if (session.estado_ronda !== 'votando') return
+    const elapsed = Date.now() - session.pista_started_at
+    const remaining = Math.max(0, TIMER_SECS * 1000 - elapsed)
+    const t = setTimeout(() => {
+      if (!miVoto) handleVoto('pista', true)
+    }, remaining + 200)
+    return () => clearTimeout(t)
+  }, [session?.pista_started_at, session?.pista_actual])
 
   // Resetear miVoto cuando cambia la pista o el jugador
   useEffect(() => {
@@ -408,15 +420,15 @@ export default function AdivinaOnline() {
           {/* CONTENIDO */}
           <div style={{ flex:1, maxWidth:520, margin:'0 auto', padding:'14px 16px 0' }}>
 
-            {/* Timer */}
-            {!finRonda && soyActivo && (
+            {/* Timer — siempre visible durante votación */}
+            {!finRonda && session?.estado_ronda === 'votando' && (
               <div style={{ marginBottom:12 }}>
                 <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'#4a6080', marginBottom:4 }}>
                   <span>Tiempo para decidir</span>
-                  <span style={{ color: timer < 15 ? '#f87171' : '#63b3ed', fontWeight:700 }}>{timer}s</span>
+                  <span style={{ color: timer <= 10 ? '#f87171' : timer <= 20 ? '#fbbf24' : '#63b3ed', fontWeight:700, fontSize:14 }}>{timer}s</span>
                 </div>
-                <div style={{ height:4, borderRadius:2, background:'rgba(255,255,255,0.08)', overflow:'hidden' }}>
-                  <div style={{ height:'100%', width:`${timerPct}%`, background: timer < 15 ? '#f87171' : '#63b3ed', borderRadius:2, transition:'width 1s linear' }} />
+                <div style={{ height:5, borderRadius:3, background:'rgba(255,255,255,0.08)', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${(timer/TIMER_SECS)*100}%`, background: timer <= 10 ? '#f87171' : timer <= 20 ? '#fbbf24' : '#63b3ed', borderRadius:3, transition:'width 0.5s linear' }} />
                 </div>
               </div>
             )}
