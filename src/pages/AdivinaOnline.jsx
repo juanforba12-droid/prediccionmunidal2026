@@ -66,58 +66,53 @@ export default function AdivinaOnline() {
   // Refs siempre actualizados
   const sessionRef = useRef(session)
   useEffect(() => { sessionRef.current = session }, [session])
-  const myUidRef = useRef(myUid)
-  useEffect(() => { myUidRef.current = myUid }, [myUid])
 
-  // Timer visual — cuenta atrás desde pista_started_at
+  // Timer local simple — 60 a 0, se reinicia cuando cambia la pista
   useEffect(() => {
     if (screen !== 'jugando') return
+    if (!session || session.estado !== 'jugando') return
+    if (session.estado_ronda === 'fin_ronda' || session.estado_ronda === 'mostrar_respuesta' || session.estado_ronda === 'adivinando') {
+      clearInterval(timerRef.current)
+      setTimer(0)
+      return
+    }
+    setTimer(TIMER_SECS)
+    setMiVoto(null)
     clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
-      const s = sessionRef.current
-      if (!s || s.estado !== 'jugando' ||
-          s.estado_ronda === 'fin_ronda' ||
-          s.estado_ronda === 'mostrar_respuesta' ||
-          s.estado_ronda === 'adivinando') {
-        setTimer(0)
-        return
-      }
-      if (!s.pista_started_at) { setTimer(TIMER_SECS); return }
-      const elapsed = Math.floor((Date.now() - s.pista_started_at) / 1000)
-      const remaining = Math.max(0, TIMER_SECS - elapsed)
-      setTimer(remaining)
-    }, 500)
+      setTimer(t => {
+        if (t <= 1) {
+          clearInterval(timerRef.current)
+          // Auto-voto con datos frescos del ref
+          const s = sessionRef.current
+          if (s) {
+            const myJugador = s.jugadores.find(j => j.id === myUid)
+            if (myJugador && !myJugador.eliminado) {
+              const activos = s.jugadores.filter(j => !j.eliminado)
+              const nuevosVotos = { ...(s.votos || {}), [myUid]: 'pista' }
+              const todosVotaron = activos.every(j => nuevosVotos[j.id])
+              setMiVoto('pista')
+              if (todosVotaron) {
+                const quierenAdivinar = activos.filter(j => nuevosVotos[j.id] === 'adivinar')
+                if (quierenAdivinar.length > 0) {
+                  supabase.from('adivina_sessions').update({ votos: nuevosVotos, estado_ronda: 'adivinando', intentos: {} }).eq('code', s.code)
+                } else if (s.pista_actual >= MAX_PISTAS) {
+                  supabase.from('adivina_sessions').update({ estado_ronda: 'mostrar_respuesta' }).eq('code', s.code)
+                } else {
+                  supabase.from('adivina_sessions').update({ pista_actual: s.pista_actual + 1, estado_ronda: 'votando', votos: {}, pista_started_at: Date.now() }).eq('code', s.code)
+                }
+              } else {
+                supabase.from('adivina_sessions').update({ votos: nuevosVotos }).eq('code', s.code)
+              }
+            }
+          }
+          return 0
+        }
+        return t - 1
+      })
+    }, 1000)
     return () => clearInterval(timerRef.current)
-  }, [screen])
-
-  // Auto-voto cuando se acaba el tiempo — se comprueba en cada poll
-  useEffect(() => {
-    if (!session || screen !== 'jugando') return
-    if (session.estado !== 'jugando' || session.estado_ronda !== 'votando') return
-    if (miVoto) return // ya voté
-    if (!session.pista_started_at) return
-    const elapsed = Math.floor((Date.now() - session.pista_started_at) / 1000)
-    if (elapsed < TIMER_SECS) return // aún no se acabó
-    // Se acabó el tiempo y no he votado — voto pista automáticamente
-    handleVoto('pista', true)
-  }, [session?.votos, session?.pista_started_at, session?.pista_actual, miVoto, screen])
-
-  // Backup timeout — garantiza que el auto-voto se dispara aunque el poll llegue tarde
-  useEffect(() => {
-    if (!session?.pista_started_at || screen !== 'jugando') return
-    if (session.estado_ronda !== 'votando') return
-    const elapsed = Date.now() - session.pista_started_at
-    const remaining = Math.max(0, TIMER_SECS * 1000 - elapsed)
-    const t = setTimeout(() => {
-      if (!miVoto) handleVoto('pista', true)
-    }, remaining + 200)
-    return () => clearTimeout(t)
-  }, [session?.pista_started_at, session?.pista_actual])
-
-  // Resetear miVoto cuando cambia la pista o el jugador
-  useEffect(() => {
-    setMiVoto(null)
-  }, [session?.pista_actual, session?.jugador_actual?.id])
+  }, [session?.pista_actual, session?.jugador_actual?.id, session?.estado_ronda, screen])
 
   const update = async (changes) => {
     if (!session) return
