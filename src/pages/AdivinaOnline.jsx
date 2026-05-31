@@ -52,9 +52,16 @@ export default function AdivinaOnline() {
     if (data.estado_ronda !== 'votando') return
     if (!data.pista_expires_at) return
     if (Date.now() < data.pista_expires_at) return
-    // El tiempo expiró — avanzar pista directamente
-    if (data.pista_actual >= MAX_PISTAS) {
-      await supabase.from('adivina_sessions').update({ estado_ronda: 'mostrar_respuesta', votos: {} }).eq('code', data.code)
+    // El tiempo expiró — rellenar votos pendientes con 'pista'
+    const activos = data.jugadores.filter(j => !j.eliminado)
+    const votosCompletos = { ...(data.votos || {}) }
+    activos.forEach(j => { if (!votosCompletos[j.id]) votosCompletos[j.id] = 'pista' })
+    // Si alguno quería adivinar, darles la oportunidad antes de avanzar
+    const quierenAdivinar = activos.filter(j => votosCompletos[j.id] === 'adivinar')
+    if (quierenAdivinar.length > 0) {
+      await supabase.from('adivina_sessions').update({ votos: votosCompletos, estado_ronda: 'adivinando', intentos: {} }).eq('code', data.code)
+    } else if (data.pista_actual >= MAX_PISTAS) {
+      await supabase.from('adivina_sessions').update({ estado_ronda: 'mostrar_respuesta', votos: votosCompletos }).eq('code', data.code)
     } else {
       const expires = Date.now() + TIMER_SECS * 1000
       await supabase.from('adivina_sessions').update({
