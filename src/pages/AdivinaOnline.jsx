@@ -83,26 +83,22 @@ export default function AdivinaOnline() {
       setTimer(t => {
         if (t <= 1) {
           clearInterval(timerRef.current)
-          // Auto-voto con datos frescos del ref
           const s = sessionRef.current
-          if (s) {
+          if (s && s.estado_ronda === 'votando') {
             const myJugador = s.jugadores.find(j => j.id === myUid)
             if (myJugador && !myJugador.eliminado) {
-              const activos = s.jugadores.filter(j => !j.eliminado)
-              const nuevosVotos = { ...(s.votos || {}), [myUid]: 'pista' }
-              const todosVotaron = activos.every(j => nuevosVotos[j.id])
               setMiVoto('pista')
-              if (todosVotaron) {
-                const quierenAdivinar = activos.filter(j => nuevosVotos[j.id] === 'adivinar')
-                if (quierenAdivinar.length > 0) {
-                  supabase.from('adivina_sessions').update({ votos: nuevosVotos, estado_ronda: 'adivinando', intentos: {} }).eq('code', s.code)
-                } else if (s.pista_actual >= MAX_PISTAS) {
-                  supabase.from('adivina_sessions').update({ estado_ronda: 'mostrar_respuesta' }).eq('code', s.code)
-                } else {
-                  supabase.from('adivina_sessions').update({ pista_actual: s.pista_actual + 1, estado_ronda: 'votando', votos: {}, pista_started_at: Date.now() }).eq('code', s.code)
-                }
+              // Tiempo acabado — rellenar votos de quien no ha votado con 'pista' y avanzar
+              const activos = s.jugadores.filter(j => !j.eliminado)
+              const todosVotos = { ...(s.votos || {}) }
+              activos.forEach(j => { if (!todosVotos[j.id]) todosVotos[j.id] = 'pista' })
+              const quierenAdivinar = activos.filter(j => todosVotos[j.id] === 'adivinar')
+              if (quierenAdivinar.length > 0) {
+                supabase.from('adivina_sessions').update({ votos: todosVotos, estado_ronda: 'adivinando', intentos: {} }).eq('code', s.code)
+              } else if (s.pista_actual >= MAX_PISTAS) {
+                supabase.from('adivina_sessions').update({ estado_ronda: 'mostrar_respuesta' }).eq('code', s.code)
               } else {
-                supabase.from('adivina_sessions').update({ votos: nuevosVotos }).eq('code', s.code)
+                supabase.from('adivina_sessions').update({ pista_actual: s.pista_actual + 1, estado_ronda: 'votando', votos: {}, pista_started_at: Date.now() }).eq('code', s.code)
               }
             }
           }
