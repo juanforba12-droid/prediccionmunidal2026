@@ -1,0 +1,57 @@
+export const JUGADORES = [
+  { id: 1, nombre: 'Ronaldinho', pistas: ['Ha nacido en 1980 en Brasil', 'Ha vestido la camiseta de un equipo de la ciudad de Querétaro en México', 'Ha ganado la Copa del Mundo', 'Ha vestido la camiseta del AC Milan', 'Ha jugado en la Serie A italiana', 'Ha ganado el Balón de Oro en 2005', 'Ha vestido la camiseta del FC Barcelona'] },
+  { id: 2, nombre: 'Zinedine Zidane', pistas: ['Ha nacido en 1972 en Francia', 'Ha marcado un gol de cabeza en una final de Copa del Mundo', 'Ha sido expulsado en una final de Copa del Mundo', 'Ha vestido la camiseta de la Juventus', 'Ha ganado la Copa del Mundo con su selección', 'Ha ganado el Balón de Oro en 1998', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 3, nombre: 'Ronaldo Nazário', pistas: ['Ha nacido en 1976 en Brasil', 'Ha vestido la camiseta del PSV Eindhoven', 'Ha ganado dos Copas del Mundo', 'Ha vestido la camiseta del Inter de Milán', 'Ha marcado dos goles en la final del Mundial 2002', 'Ha ganado el Balón de Oro en 1997 y 2002', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 4, nombre: 'Thierry Henry', pistas: ['Ha nacido en 1977 en Francia', 'Ha vestido la camiseta del Mónaco', 'Ha ganado la Copa del Mundo con su selección', 'Ha vestido la camiseta de la Juventus', 'Ha sido el máximo goleador histórico de su selección nacional', 'Ha vestido la camiseta del New York Red Bulls', 'Ha vestido la camiseta del Arsenal'] },
+  { id: 5, nombre: 'Paolo Maldini', pistas: ['Ha nacido en 1968 en Italia', 'Ha jugado toda su carrera en un solo club', 'Ha ganado cinco Champions League', 'Ha disputado más de 900 partidos con el mismo club', 'Ha sido capitán de su club durante más de una década', 'Ha jugado de defensa central y lateral izquierdo', 'Ha vestido la camiseta del AC Milan'] },
+  { id: 6, nombre: 'Andrés Iniesta', pistas: ['Ha nacido en 1984 en España', 'Ha vestido la camiseta del Vissel Kobe en Japón', 'Ha marcado el gol que dio el Mundial 2010 a España', 'Ha ganado cuatro Champions League', 'Ha sido nombrado mejor jugador de la Eurocopa 2012', 'Ha ganado nueve títulos de Liga española', 'Ha vestido la camiseta del FC Barcelona'] },
+  { id: 7, nombre: 'Xavi Hernández', pistas: ['Ha nacido en 1980 en España', 'Ha vestido la camiseta del Al Sadd en Qatar', 'Ha ganado dos Copas del Mundo con España', 'Ha ganado cuatro Champions League', 'Ha sido considerado el mejor mediocampista de su generación', 'Ha ganado ocho títulos de Liga española', 'Ha vestido la camiseta del FC Barcelona'] },
+  { id: 8, nombre: 'Cristiano Ronaldo', pistas: ['Ha nacido en 1985 en Portugal', 'Ha vestido la camiseta del Sporting de Lisboa', 'Ha ganado cinco Champions League', 'Ha vestido la camiseta de la Juventus', 'Ha ganado cinco Balones de Oro', 'Ha sido el máximo goleador histórico de la selección portuguesa', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 9, nombre: 'Lionel Messi', pistas: ['Ha nacido en 1987 en Argentina', 'Ha vestido la camiseta del Paris Saint-Germain', 'Ha ganado la Copa del Mundo en 2022', 'Ha ganado ocho Balones de Oro', 'Ha marcado más de 470 goles en LaLiga', 'Ha vestido la camiseta del Inter Miami', 'Ha vestido la camiseta del FC Barcelona'] },
+  { id: 10, nombre: 'Kaká', pistas: ['Ha nacido en 1982 en Brasil', 'Ha vestido la camiseta del São Paulo', 'Ha ganado el Mundial de Clubes', 'Ha vestido la camiseta del Orlando City', 'Ha ganado la Champions League con el AC Milan en 2007', 'Ha ganado el Balón de Oro en 2007', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 11, nombre: "Samuel Eto'o", pistas: ['Ha nacido en 1981 en Camerún', 'Ha sido campeón olímpico con Camerún en los Juegos de Sydney 2000', 'Ha ganado la Copa de África con Camerún', 'Ha vestido la camiseta del Inter de Milán', 'Ha ganado tres Champions League', 'Ha vestido la camiseta del Chelsea', 'Ha vestido la camiseta del FC Barcelona'] },
+  { id: 12, nombre: 'Roberto Carlos', pistas: ['Ha nacido en 1973 en Brasil', 'Ha vestido la camiseta del Inter de Milán', 'Ha ganado la Copa del Mundo en 2002', 'Es famoso por un gol de falta con efecto imposible contra Francia en 1997', 'Ha jugado de lateral izquierdo', 'Ha ganado cuatro títulos de Liga española', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 13, nombre: 'Didier Drogba', pistas: ['Ha nacido en 1978 en Costa de Marfil', 'Ha vestido la camiseta del Le Mans en Francia', 'Ha marcado el gol del empate en la final de Champions 2012', 'Ha vestido la camiseta del Galatasaray', 'Ha sido el máximo goleador histórico de su selección nacional', 'Ha ganado cuatro Premier League', 'Ha vestido la camiseta del Chelsea'] },
+  { id: 14, nombre: 'Zlatan Ibrahimović', pistas: ['Ha nacido en 1981 en Suecia', 'Ha vestido la camiseta del Malmö FF', 'Ha marcado más de 500 goles en su carrera', 'Ha vestido la camiseta del Inter de Milán', 'Ha ganado títulos en cuatro ligas diferentes', 'Ha vestido la camiseta del Paris Saint-Germain', 'Ha vestido la camiseta del AC Milan'] },
+  { id: 15, nombre: 'Iker Casillas', pistas: ['Ha nacido en 1981 en España', 'Ha vestido la camiseta del Porto', 'Ha ganado el Mundial 2010 con España', 'Ha sido considerado uno de los mejores porteros de la historia', 'Ha ganado cinco títulos de Liga española', 'Ha ganado tres Champions League', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 16, nombre: 'Fernando Torres', pistas: ['Ha nacido en 1984 en España', 'Ha vestido la camiseta del Sagan Tosu en Japón', 'Ha marcado el gol de la final de la Eurocopa 2008', 'Ha vestido la camiseta del AC Milan', 'Ha ganado la Eurocopa y el Mundial con España', 'Ha vestido la camiseta del Liverpool', 'Ha vestido la camiseta del Atlético de Madrid'] },
+  { id: 17, nombre: 'Luka Modrić', pistas: ['Ha nacido en 1985 en Croacia', 'Ha vestido la camiseta del Dinamo Zagreb', 'Ha ganado cuatro Champions League', 'Ha llegado a la final del Mundial con Croacia en 2018', 'Ha ganado el Balón de Oro en 2018', 'Ha vestido la camiseta del Tottenham', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 18, nombre: 'Gianluigi Buffon', pistas: ['Ha nacido en 1978 en Italia', 'Ha vestido la camiseta del Parma', 'Ha ganado el Mundial 2006 con Italia', 'Ha vestido la camiseta del Paris Saint-Germain', 'Ha sido considerado el mejor portero de su generación', 'Ha ganado diez títulos de Serie A', 'Ha vestido la camiseta de la Juventus'] },
+  { id: 19, nombre: 'Neymar', pistas: ['Ha nacido en 1992 en Brasil', 'Ha vestido la camiseta del Santos', 'Ha ganado la medalla de oro olímpica con Brasil en 2016', 'Ha sido el jugador más caro de la historia en su momento con 222M€', 'Ha vestido la camiseta del Al-Hilal', 'Ha vestido la camiseta del Paris Saint-Germain', 'Ha vestido la camiseta del FC Barcelona'] },
+  { id: 20, nombre: 'Raúl González', pistas: ['Ha nacido en 1977 en España', 'Ha formado parte de las categorías inferiores del Atlético de Madrid', 'Ha marcado más de 70 goles en competición europea', 'Ha vestido la camiseta del Schalke 04', 'Ha sido el máximo goleador histórico del Real Madrid hasta Cristiano Ronaldo', 'Ha ganado tres Champions League', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 21, nombre: 'Steven Gerrard', pistas: ['Ha nacido en 1980 en Inglaterra', 'Ha vestido la camiseta del LA Galaxy', 'Ha protagonizado una remontada histórica en la final de Champions 2005', 'Ha sido capitán de su club durante más de una década', 'Ha jugado toda su carrera en Inglaterra excepto al final', 'Ha sido nombrado mejor jugador de la final de Champions 2005', 'Ha vestido la camiseta del Liverpool'] },
+  { id: 22, nombre: 'Xabi Alonso', pistas: ['Ha nacido en 1981 en España', 'Ha vestido la camiseta de la Real Sociedad', 'Ha ganado el Mundial 2010 con España', 'Ha vestido la camiseta del Bayern de Múnich', 'Ha ganado la Champions League con dos clubes distintos', 'Ha ganado la Bundesliga con el Bayern de Múnich', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 23, nombre: 'Sergio Ramos', pistas: ['Ha nacido en 1986 en España', 'Ha vestido la camiseta del Sevilla', 'Ha marcado goles decisivos en finales de Champions', 'Ha ganado el Mundial 2010 con España', 'Ha sido el jugador con más tarjetas rojas en LaLiga', 'Ha ganado cuatro Champions League', 'Ha vestido la camiseta del Real Madrid'] },
+  { id: 24, nombre: 'Franck Ribéry', pistas: ['Ha nacido en 1983 en Francia', 'Ha vestido la camiseta del Galatasaray', 'Ha ganado la Champions League en 2013', 'Ha vestido la camiseta del Marsella', 'Ha ganado ocho Bundesligas', 'Ha vestido la camiseta de la Fiorentina', 'Ha vestido la camiseta del Bayern de Múnich'] },
+  { id: 25, nombre: 'Diego Forlán', pistas: ['Ha nacido en 1979 en Uruguay', 'Ha vestido la camiseta del Manchester United', 'Ha ganado el Balón de Oro del Mundial 2010', 'Ha vestido la camiseta del Villarreal', 'Ha ganado la Europa League con el Atlético de Madrid', 'Ha sido máximo goleador de LaLiga en dos ocasiones', 'Ha vestido la camiseta del Atlético de Madrid'] },
+  { id: 26, nombre: 'Michael Owen', pistas: ['Ha nacido en 1979 en Inglaterra', 'Ha vestido la camiseta del Newcastle', 'Ha ganado el Balón de Oro en 2001', 'Ha vestido la camiseta del Manchester United', 'Ha marcado un gol legendario ante Argentina en el Mundial 1998', 'Ha vestido la camiseta del Real Madrid', 'Ha vestido la camiseta del Liverpool'] },
+  { id: 27, nombre: 'Arjen Robben', pistas: ['Ha nacido en 1984 en Países Bajos', 'Ha vestido la camiseta del Groningen', 'Ha llegado a la final del Mundial 2010 con Países Bajos', 'Ha vestido la camiseta del Chelsea', 'Ha marcado el gol de la final de Champions 2013', 'Ha ganado ocho Bundesligas', 'Ha vestido la camiseta del Bayern de Múnich'] },
+  { id: 28, nombre: 'Wayne Rooney', pistas: ['Ha nacido en 1985 en Inglaterra', 'Ha vestido la camiseta del DC United', 'Ha debutado en Primera División con 16 años en el Everton', 'Ha vestido la camiseta del Everton', 'Ha sido el máximo goleador histórico de la selección inglesa', 'Ha ganado cinco Premier League', 'Ha vestido la camiseta del Manchester United'] },
+  { id: 29, nombre: 'Radamel Falcao', pistas: ['Ha nacido en 1986 en Colombia', 'Ha vestido la camiseta del River Plate', 'Ha ganado la Europa League con el Atlético de Madrid', 'Ha vestido la camiseta del Chelsea', 'Ha sido máximo goleador de LaLiga en la temporada 2012/13', 'Ha vestido la camiseta del Mónaco', 'Ha vestido la camiseta del Atlético de Madrid'] },
+  { id: 30, nombre: 'David Villa', pistas: ['Ha nacido en 1981 en España', 'Ha vestido la camiseta del Sporting de Gijón', 'Ha sido el máximo goleador histórico de la selección española', 'Ha vestido la camiseta del Melbourne City', 'Ha ganado el Mundial 2010 con España', 'Ha vestido la camiseta del Atlético de Madrid', 'Ha vestido la camiseta del Valencia'] },
+]
+
+export function getRandomJugador(excludeIds = []) {
+  const available = JUGADORES.filter(j => !excludeIds.includes(j.id))
+  if (available.length === 0) return JUGADORES[Math.floor(Math.random() * JUGADORES.length)]
+  return available[Math.floor(Math.random() * available.length)]
+}
+
+export function normalize(str) {
+  return str.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim()
+}
+
+export function checkAnswer(input, jugador) {
+  const inp = normalize(input)
+  if (!inp || inp.length < 2) return false
+  const full = normalize(jugador.nombre)
+  if (inp === full) return true
+  const parts = full.split(' ')
+  for (const part of parts) {
+    if (part.length >= 3 && inp === part) return true
+  }
+  return false
+}
