@@ -213,32 +213,42 @@ export default function AdivinaOnline() {
     if (!inputAdivina.trim() || !session) return
     const jugador = session.jugador_actual
     const nuevosIntentos = { ...(session.intentos || {}), [myUid]: inputAdivina.trim() }
-    const activos = session.jugadores.filter(j => !j.eliminado)
-    const quierenAdivinar = activos.filter(j => (session.votos || {})[j.id] === 'adivinar')
+    const activosAntes = session.jugadores.filter(j => !j.eliminado)
+    const quierenAdivinar = activosAntes.filter(j => (session.votos || {})[j.id] === 'adivinar')
     const todosIntentaron = quierenAdivinar.every(j => nuevosIntentos[j.id])
 
     if (checkAnswer(inputAdivina, jugador)) {
+      // Acierto — fin de ronda
       const pts = MAX_PISTAS - session.pista_actual + 1
       const jugadores = session.jugadores.map(j => j.id === myUid ? { ...j, puntos: (j.puntos || 0) + pts } : j)
       setFeedback({ type: 'ok', text: `✅ ¡Correcto! +${pts} pts` })
       const historial = [...(session.historial || []), { jugador: jugador.nombre, ganador: myName, pts }]
-      if (todosIntentaron) {
-        // Siguiente jugador
-        const nuevoJugador = getRandomJugador(historial.map(h => jugador.id))
-        await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial, jugador_actual: nuevoJugador })
-      } else {
-        await update({ jugadores, intentos: nuevosIntentos })
-      }
+      await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial })
     } else {
-      // Fallo — eliminado esta ronda
+      // Fallo — este jugador queda eliminado
       setFeedback({ type: 'fail', text: `❌ "${inputAdivina}" no es correcto` })
       const jugadores = session.jugadores.map(j => j.id === myUid ? { ...j, eliminado: true } : j)
       const activosRestantes = jugadores.filter(j => !j.eliminado)
 
-      if (activosRestantes.length === 0 || todosIntentaron) {
+      if (activosRestantes.length === 0) {
+        // Nadie queda — fin de ronda sin ganador
         const historial = [...(session.historial || []), { jugador: jugador.nombre, ganador: null, pts: 0 }]
         await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial })
+      } else if (todosIntentaron) {
+        // Todos los que querían adivinar ya intentaron
+        // Si quedan activos que pidieron pista, volver a votando
+        const quedanSinAdivinar = activosRestantes.filter(j => (session.votos || {})[j.id] !== 'adivinar')
+        if (quedanSinAdivinar.length > 0 || activosRestantes.some(j => !(session.votos || {})[j.id])) {
+          // Hay activos que no han intentado adivinar — nueva ronda de votos
+          await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'votando', votos: {} })
+          setMiVoto(null)
+        } else {
+          // Todos han intentado y fallado — fin
+          const historial = [...(session.historial || []), { jugador: jugador.nombre, ganador: null, pts: 0 }]
+          await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial })
+        }
       } else {
+        // Aún quedan jugadores que no han intentado
         await update({ jugadores, intentos: nuevosIntentos })
       }
     }
