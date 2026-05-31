@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { JUGADORES, getRandomJugador, checkAnswer } from '../lib/adivinaData.js'
 
 const MAX_PISTAS = 7
 const MAX_VIDAS = 3
+const TIMER_SECS = 60
 const SAVE_KEY = 'adivina_individual_state'
 
 function loadState() {
@@ -32,6 +33,8 @@ export default function AdivinaIndividual() {
   const [estado, setEstado] = useState(savedState?.estado || 'jugando')
   const [historial, setHistorial] = useState(savedState?.historial || [])
   const [mostrandoInput, setMostrandoInput] = useState(false)
+  const [timer, setTimer] = useState(TIMER_SECS)
+  const timerRef = useRef(null)
 
   // Guardar estado cada vez que cambia algo importante
   useEffect(() => {
@@ -39,6 +42,35 @@ export default function AdivinaIndividual() {
       saveState({ jugador, pistasReveladas, vidas, puntosTotal, estado, historial })
     }
   }, [jugador, pistasReveladas, vidas, puntosTotal, estado, historial])
+
+  // Timer — se reinicia cada vez que cambia la pista o el jugador
+  useEffect(() => {
+    if (estado !== 'jugando') {
+      clearInterval(timerRef.current)
+      return
+    }
+    setTimer(TIMER_SECS)
+    setMostrandoInput(false)
+    clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => {
+      setTimer(t => {
+        if (t <= 1) {
+          clearInterval(timerRef.current)
+          // Se acaba el tiempo → pista siguiente automática o rendirse si es la última
+          setPistasReveladas(prev => {
+            if (prev < MAX_PISTAS) return prev + 1
+            // Era la última pista — se rinde
+            setHistorial(h => [...h, { nombre: jugador.nombre, pts: 0, acierto: false }])
+            setEstado('rendido')
+            return prev
+          })
+          return TIMER_SECS
+        }
+        return t - 1
+      })
+    }, 1000)
+    return () => clearInterval(timerRef.current)
+  }, [pistasReveladas, jugador.id, estado])
 
   const puntosRonda = MAX_PISTAS - pistasReveladas + 1
 
@@ -57,6 +89,7 @@ export default function AdivinaIndividual() {
   const handleSubmit = () => {
     if (!input.trim()) return
     if (checkAnswer(input, jugador)) {
+      clearInterval(timerRef.current)
       const pts = puntosRonda
       setPuntosTotal(p => p + pts)
       setHistorial(h => [...h, { nombre: jugador.nombre, pts, acierto: true }])
@@ -70,6 +103,7 @@ export default function AdivinaIndividual() {
       setMostrandoInput(false)
       setTimeout(() => setFeedback(null), 1500)
       if (nuevasVidas <= 0) {
+        clearInterval(timerRef.current)
         setHistorial(h => [...h, { nombre: jugador.nombre, pts: 0, acierto: false }])
         setEstado('rendido')
       }
@@ -77,6 +111,7 @@ export default function AdivinaIndividual() {
   }
 
   const rendirse = () => {
+    clearInterval(timerRef.current)
     setHistorial(h => [...h, { nombre: jugador.nombre, pts: 0, acierto: false }])
     setEstado('rendido')
   }
@@ -115,7 +150,20 @@ export default function AdivinaIndividual() {
         </div>
       </div>
 
-      <div style={{ maxWidth:520, margin:'0 auto', padding:'20px 16px 0' }}>
+      {/* TIMER */}
+      {estado === 'jugando' && (
+        <div style={{ maxWidth:520, margin:'12px auto 0', padding:'0 16px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'#4a6080', marginBottom:4 }}>
+            <span>Tiempo para esta pista</span>
+            <span style={{ color: timer <= 10 ? '#f87171' : timer <= 20 ? '#fbbf24' : '#63b3ed', fontWeight:900, fontSize:14 }}>{timer}s</span>
+          </div>
+          <div style={{ height:5, borderRadius:3, background:'rgba(255,255,255,0.08)', overflow:'hidden' }}>
+            <div style={{ height:'100%', width:`${(timer/TIMER_SECS)*100}%`, background: timer <= 10 ? '#f87171' : timer <= 20 ? '#fbbf24' : '#63b3ed', borderRadius:3, transition:'width 1s linear' }} />
+          </div>
+        </div>
+      )}
+
+      <div style={{ maxWidth:520, margin:'0 auto', padding:'16px 16px 0' }}>
 
         {/* Pistas */}
         <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:20 }}>
