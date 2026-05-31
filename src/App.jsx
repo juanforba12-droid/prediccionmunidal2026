@@ -12,6 +12,9 @@ import MentirosoGame from './pages/MentirosoGame.jsx'
 import TopDiezHome from './pages/TopDiezHome.jsx'
 import TopDiezIndividual from './pages/TopDiezIndividual.jsx'
 import TopDiezOnline from './pages/TopDiezOnline.jsx'
+import AdivinaHome from './pages/AdivinaHome.jsx'
+import AdivinaIndividual from './pages/AdivinaIndividual.jsx'
+import AdivinaOnline from './pages/AdivinaOnline.jsx'
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(undefined)
@@ -45,6 +48,10 @@ export default function App() {
       <Route path="/topdiezgame" element={<ProtectedRoute><TopDiezHome /></ProtectedRoute>} />
       <Route path="/topdiezgame/individual" element={<ProtectedRoute><TopDiezIndividual /></ProtectedRoute>} />
       <Route path="/topdiezgame/online" element={<ProtectedRoute><TopDiezOnline /></ProtectedRoute>} />
+      {/* Adivina */}
+      <Route path="/adivina" element={<ProtectedRoute><AdivinaHome /></ProtectedRoute>} />
+      <Route path="/adivina/individual" element={<ProtectedRoute><AdivinaIndividual /></ProtectedRoute>} />
+      <Route path="/adivina/online" element={<ProtectedRoute><AdivinaOnline /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
