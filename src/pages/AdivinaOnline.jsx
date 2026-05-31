@@ -64,24 +64,51 @@ export default function AdivinaOnline() {
   }, [session?.estado])
 
   // Timer por pista
+  const sessionRef = useRef(session)
+  useEffect(() => { sessionRef.current = session }, [session])
+  const miVotoRef = useRef(miVoto)
+  useEffect(() => { miVotoRef.current = miVoto }, [miVoto])
+
   useEffect(() => {
     if (screen !== 'jugando' || !session || session.estado !== 'jugando') return
-    if (session.estado_ronda === 'fin_ronda' || session.estado_ronda === 'mostrar_respuesta') return
+    if (session.estado_ronda === 'fin_ronda' || session.estado_ronda === 'mostrar_respuesta' || session.estado_ronda === 'adivinando') return
     setTimer(TIMER_SECS)
     setMiVoto(null)
+    clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
       setTimer(t => {
         if (t <= 1) {
           clearInterval(timerRef.current)
-          // Tiempo agotado = voto automático pedir pista
-          handleVoto('pista', true)
+          // Tiempo agotado — voto automático pedir pista si no ha votado
+          if (!miVotoRef.current) {
+            const s = sessionRef.current
+            if (s) {
+              const activos = s.jugadores.filter(j => !j.eliminado)
+              const nuevosVotos = { ...(s.votos || {}), [s.jugadores.find(j => j.id === myUid)?.id || '']: 'pista' }
+              const todosVotaron = activos.every(j => nuevosVotos[j.id])
+              if (todosVotaron) {
+                const quierenAdivinar = activos.filter(j => nuevosVotos[j.id] === 'adivinar')
+                if (quierenAdivinar.length > 0) {
+                  supabase.from('adivina_sessions').update({ votos: nuevosVotos, estado_ronda: 'adivinando', intentos: {} }).eq('code', s.code)
+                } else if (s.pista_actual >= MAX_PISTAS) {
+                  supabase.from('adivina_sessions').update({ votos: nuevosVotos, estado_ronda: 'mostrar_respuesta' }).eq('code', s.code)
+                } else {
+                  supabase.from('adivina_sessions').update({ votos: nuevosVotos, pista_actual: s.pista_actual + 1, estado_ronda: 'votando', votos: {} }).eq('code', s.code)
+                }
+              } else {
+                supabase.from('adivina_sessions').update({ votos: nuevosVotos }).eq('code', s.code)
+              }
+              miVotoRef.current = 'pista'
+              setMiVoto('pista')
+            }
+          }
           return 0
         }
         return t - 1
       })
     }, 1000)
     return () => clearInterval(timerRef.current)
-  }, [session?.pista_actual, session?.estado_ronda])
+  }, [session?.pista_actual, session?.estado_ronda, screen])
 
   const update = async (changes) => {
     if (!session) return
@@ -213,8 +240,7 @@ export default function AdivinaOnline() {
     if (!inputAdivina.trim() || !session) return
     const jugador = session.jugador_actual
     const nuevosIntentos = { ...(session.intentos || {}), [myUid]: inputAdivina.trim() }
-    const activosAntes = session.jugadores.filter(j => !j.eliminado)
-    const quierenAdivinar = activosAntes.filter(j => (session.votos || {})[j.id] === 'adivinar')
+    const quierenAdivinar = session.jugadores.filter(j => !j.eliminado && (session.votos || {})[j.id] === 'adivinar')
     const todosIntentaron = quierenAdivinar.every(j => nuevosIntentos[j.id])
 
     if (checkAnswer(inputAdivina, jugador)) {
@@ -235,20 +261,12 @@ export default function AdivinaOnline() {
         const historial = [...(session.historial || []), { jugador: jugador.nombre, ganador: null, pts: 0 }]
         await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial })
       } else if (todosIntentaron) {
-        // Todos los que querían adivinar ya intentaron
-        // Si quedan activos que pidieron pista, volver a votando
-        const quedanSinAdivinar = activosRestantes.filter(j => (session.votos || {})[j.id] !== 'adivinar')
-        if (quedanSinAdivinar.length > 0 || activosRestantes.some(j => !(session.votos || {})[j.id])) {
-          // Hay activos que no han intentado adivinar — nueva ronda de votos
-          await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'votando', votos: {} })
-          setMiVoto(null)
-        } else {
-          // Todos han intentado y fallado — fin
-          const historial = [...(session.historial || []), { jugador: jugador.nombre, ganador: null, pts: 0 }]
-          await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial })
-        }
+        // Todos los que querían adivinar ya intentaron — volver a votando con votos limpios
+        // Los activos restantes pueden pedir más pistas o intentar adivinar de nuevo
+        await update({ jugadores, intentos: {}, estado_ronda: 'votando', votos: {} })
+        setMiVoto(null)
       } else {
-        // Aún quedan jugadores que no han intentado
+        // Aún quedan jugadores de esta tanda que no han intentado
         await update({ jugadores, intentos: nuevosIntentos })
       }
     }
