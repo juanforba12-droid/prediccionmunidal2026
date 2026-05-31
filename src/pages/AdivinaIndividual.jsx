@@ -1,21 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { JUGADORES, getRandomJugador, checkAnswer } from '../lib/adivinaData.js'
 
 const MAX_PISTAS = 7
 const MAX_VIDAS = 3
+const SAVE_KEY = 'adivina_individual_state'
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(SAVE_KEY)
+    if (saved) return JSON.parse(saved)
+  } catch(e) {}
+  return null
+}
+
+function saveState(state) {
+  localStorage.setItem(SAVE_KEY, JSON.stringify(state))
+}
 
 export default function AdivinaIndividual() {
   const nav = useNavigate()
-  const [jugador, setJugador] = useState(() => getRandomJugador())
-  const [pistasReveladas, setPistasReveladas] = useState(1)
+
+  const savedState = loadState()
+
+  const [jugador, setJugador] = useState(() => savedState?.jugador || getRandomJugador())
+  const [pistasReveladas, setPistasReveladas] = useState(savedState?.pistasReveladas || 1)
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState(null)
-  const [vidas, setVidas] = useState(MAX_VIDAS)
-  const [puntosTotal, setPuntosTotal] = useState(0)
-  const [estado, setEstado] = useState('jugando') // jugando | acertado | rendido
-  const [historial, setHistorial] = useState([])
+  const [vidas, setVidas] = useState(savedState?.vidas ?? MAX_VIDAS)
+  const [puntosTotal, setPuntosTotal] = useState(savedState?.puntosTotal || 0)
+  const [estado, setEstado] = useState(savedState?.estado || 'jugando')
+  const [historial, setHistorial] = useState(savedState?.historial || [])
   const [mostrandoInput, setMostrandoInput] = useState(false)
+
+  // Guardar estado cada vez que cambia algo importante
+  useEffect(() => {
+    if (estado === 'jugando' || estado === 'acertado' || estado === 'rendido') {
+      saveState({ jugador, pistasReveladas, vidas, puntosTotal, estado, historial })
+    }
+  }, [jugador, pistasReveladas, vidas, puntosTotal, estado, historial])
 
   const puntosRonda = MAX_PISTAS - pistasReveladas + 1
 
@@ -60,13 +83,19 @@ export default function AdivinaIndividual() {
 
   const siguienteRonda = () => {
     const usados = historial.map(h => JUGADORES.find(j => j.nombre === h.nombre)?.id).filter(Boolean)
-    setJugador(getRandomJugador(usados))
+    const nuevoJugador = getRandomJugador(usados)
+    setJugador(nuevoJugador)
     setPistasReveladas(1)
     setInput('')
     setFeedback(null)
     setVidas(MAX_VIDAS)
     setEstado('jugando')
     setMostrandoInput(false)
+  }
+
+  const salirAlMenu = () => {
+    localStorage.removeItem(SAVE_KEY)
+    nav('/adivina')
   }
 
   const vidasArr = Array(MAX_VIDAS).fill(0).map((_, i) => i < vidas)
@@ -76,7 +105,7 @@ export default function AdivinaIndividual() {
 
       {/* HEADER */}
       <div style={{ background:'rgba(0,0,0,0.4)', borderBottom:'1px solid rgba(99,179,237,0.15)', padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
-        <button onClick={() => nav('/adivina')} style={{ background:'none', border:'none', color:'#6a7a8a', cursor:'pointer', fontSize:20 }}>←</button>
+        <button onClick={salirAlMenu} style={{ background:'none', border:'none', color:'#6a7a8a', cursor:'pointer', fontSize:20 }}>←</button>
         <div style={{ flex:1, fontSize:14, fontWeight:900, color:'#63b3ed', letterSpacing:1 }}>ADIVINA EL JUGADOR</div>
         <div style={{ display:'flex', gap:4 }}>
           {vidasArr.map((viva, i) => <span key={i} style={{ fontSize:18 }}>{viva ? '❤️' : '🖤'}</span>)}
@@ -154,7 +183,7 @@ export default function AdivinaIndividual() {
             <button onClick={rendirse} style={{ width:'100%', padding:11, borderRadius:10, border:'1px solid rgba(239,68,68,0.25)', background:'rgba(239,68,68,0.06)', color:'#f87171', fontSize:13, fontWeight:700, cursor:'pointer' }}>
               🏳️ Rendirse
             </button>
-            <button onClick={() => nav('/adivina')} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>
+            <button onClick={salirAlMenu} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>
               Salir al menú
             </button>
           </div>
@@ -171,7 +200,7 @@ export default function AdivinaIndividual() {
             <button onClick={siguienteRonda} style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#fff', fontSize:15, fontWeight:900, cursor:'pointer', marginBottom:8 }}>
               ⚽ Siguiente jugador
             </button>
-            <button onClick={() => nav('/adivina')} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>
+            <button onClick={salirAlMenu} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>
               Salir al menú
             </button>
           </div>
@@ -188,7 +217,7 @@ export default function AdivinaIndividual() {
             <button onClick={siguienteRonda} style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#fff', fontSize:15, fontWeight:900, cursor:'pointer', marginBottom:8 }}>
               ⚽ Siguiente jugador
             </button>
-            <button onClick={() => nav('/adivina')} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>
+            <button onClick={salirAlMenu} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>
               Salir al menú
             </button>
           </div>
