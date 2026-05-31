@@ -220,28 +220,30 @@ export default function AdivinaOnline() {
   }
 
   const handleVoto = async (voto, autoTimer = false) => {
-    if (!session || miVoto) return
+    if (!autoTimer && miVoto) return
     if (!autoTimer) setMiVoto(voto)
-    clearInterval(timerRef.current)
-    const activos = session.jugadores.filter(j => !j.eliminado)
-    const nuevosVotos = { ...(session.votos || {}), [myUid]: voto }
+    // Usar sessionRef para tener los datos más frescos
+    const s = sessionRef.current
+    if (!s) return
+    const activos = s.jugadores.filter(j => !j.eliminado)
+    const myJugador = activos.find(j => j.id === myUid)
+    if (!myJugador) return
+    const nuevosVotos = { ...(s.votos || {}), [myUid]: voto }
     const todosVotaron = activos.every(j => nuevosVotos[j.id])
 
     if (todosVotaron) {
-      // Procesar votos
       const quierenAdivinar = activos.filter(j => nuevosVotos[j.id] === 'adivinar')
       if (quierenAdivinar.length > 0) {
-        await update({ votos: nuevosVotos, estado_ronda: 'adivinando', intentos: {} })
+        await supabase.from('adivina_sessions').update({ votos: nuevosVotos, estado_ronda: 'adivinando', intentos: {} }).eq('code', s.code)
       } else {
-        // Todos piden pista
-        if (session.pista_actual >= MAX_PISTAS) {
-          await update({ votos: nuevosVotos, estado_ronda: 'mostrar_respuesta' })
+        if (s.pista_actual >= MAX_PISTAS) {
+          await supabase.from('adivina_sessions').update({ votos: nuevosVotos, estado_ronda: 'mostrar_respuesta' }).eq('code', s.code)
         } else {
-          await update({ votos: nuevosVotos, pista_actual: session.pista_actual + 1, estado_ronda: 'votando', votos: {}, pista_started_at: Date.now() })
+          await supabase.from('adivina_sessions').update({ pista_actual: s.pista_actual + 1, estado_ronda: 'votando', votos: {}, pista_started_at: Date.now() }).eq('code', s.code)
         }
       }
     } else {
-      await update({ votos: nuevosVotos })
+      await supabase.from('adivina_sessions').update({ votos: nuevosVotos }).eq('code', s.code)
     }
   }
 
