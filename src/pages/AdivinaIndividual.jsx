@@ -1,11 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { JUGADORES, getRandomJugador, checkAnswer } from '../lib/adivinaData.js'
+import { supabase } from '../lib/supabase.js'
+import { getRankInfo } from '../lib/ranks.js'
+import { addPoints, getUserPoints } from '../lib/userPoints.js'
 
 const MAX_PISTAS = 7
 const MAX_VIDAS = 3
 const TIMER_SECS = 60
 const SAVE_KEY = 'adivina_individual_state'
+
+// Puntos por pista (pista 1 = 7pts, pista 7 = 1pt)
+const puntosRonda = (pistasReveladas) => MAX_PISTAS - pistasReveladas + 1
 
 function loadState() {
   try {
@@ -14,14 +20,35 @@ function loadState() {
   } catch(e) {}
   return null
 }
-
 function saveState(state) {
   localStorage.setItem(SAVE_KEY, JSON.stringify(state))
 }
 
+// Mini barra de XP flotante
+function XPBar({ totalPoints, puntosGanados }) {
+  const rankInfo = getRankInfo(totalPoints)
+  const { rank, level, progress } = rankInfo
+  const levelStr = rank.levels > 1 ? ` ${['I','II','III'][level-1]}` : ''
+  return (
+    <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(10,10,26,0.95)', borderTop:`1px solid ${rank.color}33`, padding:'8px 16px', zIndex:50, backdropFilter:'blur(10px)' }}>
+      <div style={{ maxWidth:520, margin:'0 auto' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5 }}>
+          <span style={{ fontSize:12, color: rank.color, fontWeight:700 }}>{rank.emoji} {rank.name}{levelStr}</span>
+          <span style={{ fontSize:12, color:'rgba(255,255,255,0.4)' }}>{totalPoints.toLocaleString()} XP</span>
+          {puntosGanados > 0 && (
+            <span style={{ fontSize:12, color:'#22c55e', fontWeight:800, animation:'fadeInUp 0.4s ease' }}>+{puntosGanados} XP ✨</span>
+          )}
+        </div>
+        <div style={{ height:6, borderRadius:99, background:'rgba(255,255,255,0.07)', overflow:'hidden' }}>
+          <div style={{ height:'100%', width:`${progress}%`, background:`linear-gradient(90deg, ${rank.color}88, ${rank.color})`, borderRadius:99, transition:'width 0.8s ease' }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdivinaIndividual() {
   const nav = useNavigate()
-
   const savedState = loadState()
 
   const [jugador, setJugador] = useState(() => savedState?.jugador || getRandomJugador())
@@ -29,26 +56,43 @@ export default function AdivinaIndividual() {
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState(null)
   const [vidas, setVidas] = useState(savedState?.vidas ?? MAX_VIDAS)
-  const [puntosTotal, setPuntosTotal] = useState(savedState?.puntosTotal || 0)
+  const [puntosLocal, setPuntosLocal] = useState(savedState?.puntosLocal || 0) // puntos de esta sesión
   const [estado, setEstado] = useState(savedState?.estado || 'jugando')
   const [historial, setHistorial] = useState(savedState?.historial || [])
   const [mostrandoInput, setMostrandoInput] = useState(false)
   const [timer, setTimer] = useState(TIMER_SECS)
   const timerRef = useRef(null)
 
-  // Guardar estado cada vez que cambia algo importante
+  // XP sistema
+  const [user, setUser] = useState(null)
+  const [totalXP, setTotalXP] = useState(0)
+  const [lastGained, setLastGained] = useState(0)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser(data.user)
+        getUserPoints(data.user.id).then(setTotalXP)
+      }
+    })
+  }, [])
+
+  const grantXP = async (pts) => {
+    if (!user || pts <= 0) return
+    setLastGained(pts)
+    setTotalXP(prev => prev + pts)
+    await addPoints(user.id, pts, 'adivina_individual')
+    setTimeout(() => setLastGained(0), 2500)
+  }
+
   useEffect(() => {
     if (estado === 'jugando' || estado === 'acertado' || estado === 'rendido') {
-      saveState({ jugador, pistasReveladas, vidas, puntosTotal, estado, historial })
+      saveState({ jugador, pistasReveladas, vidas, puntosLocal, estado, historial })
     }
-  }, [jugador, pistasReveladas, vidas, puntosTotal, estado, historial])
+  }, [jugador, pistasReveladas, vidas, puntosLocal, estado, historial])
 
-  // Timer — se reinicia cada vez que cambia la pista o el jugador
   useEffect(() => {
-    if (estado !== 'jugando') {
-      clearInterval(timerRef.current)
-      return
-    }
+    if (estado !== 'jugando') { clearInterval(timerRef.current); return }
     setTimer(TIMER_SECS)
     setMostrandoInput(false)
     clearInterval(timerRef.current)
@@ -56,10 +100,8 @@ export default function AdivinaIndividual() {
       setTimer(t => {
         if (t <= 1) {
           clearInterval(timerRef.current)
-          // Se acaba el tiempo → pista siguiente automática o rendirse si es la última
           setPistasReveladas(prev => {
             if (prev < MAX_PISTAS) return prev + 1
-            // Era la última pista — se rinde
             setHistorial(h => [...h, { nombre: jugador.nombre, pts: 0, acierto: false }])
             setEstado('rendido')
             return prev
@@ -72,13 +114,10 @@ export default function AdivinaIndividual() {
     return () => clearInterval(timerRef.current)
   }, [pistasReveladas, jugador.id, estado])
 
-  const puntosRonda = MAX_PISTAS - pistasReveladas + 1
+  const pts = puntosRonda(pistasReveladas)
 
   const siguientePista = () => {
-    if (pistasReveladas < MAX_PISTAS) {
-      setPistasReveladas(p => p + 1)
-      setMostrandoInput(false)
-    }
+    if (pistasReveladas < MAX_PISTAS) { setPistasReveladas(p => p + 1); setMostrandoInput(false) }
   }
 
   const intentarAdivinar = () => {
@@ -90,11 +129,11 @@ export default function AdivinaIndividual() {
     if (!input.trim()) return
     if (checkAnswer(input, jugador)) {
       clearInterval(timerRef.current)
-      const pts = puntosRonda
-      setPuntosTotal(p => p + pts)
+      setPuntosLocal(p => p + pts)
       setHistorial(h => [...h, { nombre: jugador.nombre, pts, acierto: true }])
       setEstado('acertado')
       setFeedback(null)
+      grantXP(pts)
     } else {
       const nuevasVidas = vidas - 1
       setVidas(nuevasVidas)
@@ -118,8 +157,7 @@ export default function AdivinaIndividual() {
 
   const siguienteRonda = () => {
     const usados = historial.map(h => JUGADORES.find(j => j.nombre === h.nombre)?.id).filter(Boolean)
-    const nuevoJugador = getRandomJugador(usados)
-    setJugador(nuevoJugador)
+    setJugador(getRandomJugador(usados))
     setPistasReveladas(1)
     setInput('')
     setFeedback(null)
@@ -128,15 +166,11 @@ export default function AdivinaIndividual() {
     setMostrandoInput(false)
   }
 
-  const salirAlMenu = () => {
-    localStorage.removeItem(SAVE_KEY)
-    nav('/adivina')
-  }
-
+  const salirAlMenu = () => { localStorage.removeItem(SAVE_KEY); nav('/adivina') }
   const vidasArr = Array(MAX_VIDAS).fill(0).map((_, i) => i < vidas)
 
   return (
-    <div style={{ minHeight:'100vh', background:'linear-gradient(160deg,#0a0f1a,#0f1a2e,#0a0f1a)', fontFamily:'system-ui,sans-serif', color:'#e8eaf0', paddingBottom:60 }}>
+    <div style={{ minHeight:'100vh', background:'linear-gradient(160deg,#0a0f1a,#0f1a2e,#0a0f1a)', fontFamily:'system-ui,sans-serif', color:'#e8eaf0', paddingBottom:80 }}>
 
       {/* HEADER */}
       <div style={{ background:'rgba(0,0,0,0.4)', borderBottom:'1px solid rgba(99,179,237,0.15)', padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
@@ -146,7 +180,7 @@ export default function AdivinaIndividual() {
           {vidasArr.map((viva, i) => <span key={i} style={{ fontSize:18 }}>{viva ? '❤️' : '🖤'}</span>)}
         </div>
         <div style={{ background:'rgba(99,179,237,0.15)', borderRadius:20, padding:'4px 14px', fontSize:13, fontWeight:900, color:'#63b3ed' }}>
-          🏆 {puntosTotal} pts
+          🏆 {puntosLocal} pts
         </div>
       </div>
 
@@ -168,23 +202,14 @@ export default function AdivinaIndividual() {
         {/* Pistas */}
         <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:20 }}>
           {jugador.pistas.slice(0, pistasReveladas).map((pista, i) => (
-            <div key={i} style={{
-              padding:'14px 16px', borderRadius:12,
-              background: i === pistasReveladas - 1 ? 'rgba(99,179,237,0.1)' : 'rgba(255,255,255,0.04)',
-              border:`1px solid ${i === pistasReveladas - 1 ? 'rgba(99,179,237,0.35)' : 'rgba(255,255,255,0.07)'}`,
-              animation: i === pistasReveladas - 1 ? 'fadeIn 0.3s ease' : 'none',
-            }}>
+            <div key={i} style={{ padding:'14px 16px', borderRadius:12, background: i === pistasReveladas - 1 ? 'rgba(99,179,237,0.1)' : 'rgba(255,255,255,0.04)', border:`1px solid ${i === pistasReveladas - 1 ? 'rgba(99,179,237,0.35)' : 'rgba(255,255,255,0.07)'}`, animation: i === pistasReveladas - 1 ? 'fadeIn 0.3s ease' : 'none' }}>
               <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-                <div style={{ width:24, height:24, borderRadius:'50%', background:'rgba(99,179,237,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:900, color:'#63b3ed', flexShrink:0 }}>
-                  {i + 1}
-                </div>
+                <div style={{ width:24, height:24, borderRadius:'50%', background:'rgba(99,179,237,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:900, color:'#63b3ed', flexShrink:0 }}>{i + 1}</div>
                 <div style={{ fontSize:14, color:'#c8d8ea', lineHeight:1.5 }}>{pista}</div>
                 <div style={{ marginLeft:'auto', fontSize:11, color:'#4a6080', flexShrink:0 }}>+{MAX_PISTAS - i} pts</div>
               </div>
             </div>
           ))}
-
-          {/* Pistas ocultas */}
           {estado === 'jugando' && Array(MAX_PISTAS - pistasReveladas).fill(0).map((_, i) => (
             <div key={i} style={{ padding:'14px 16px', borderRadius:12, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.04)', display:'flex', alignItems:'center', gap:10 }}>
               <div style={{ width:24, height:24, borderRadius:'50%', background:'rgba(255,255,255,0.05)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, color:'#2a3a4a' }}>{pistasReveladas + i + 1}</div>
@@ -194,84 +219,57 @@ export default function AdivinaIndividual() {
           ))}
         </div>
 
-        {/* Feedback */}
         {feedback && (
-          <div style={{ textAlign:'center', marginBottom:12, padding:'8px 16px', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:10, fontSize:14, color:'#f87171', fontWeight:700 }}>
-            {feedback}
-          </div>
+          <div style={{ textAlign:'center', marginBottom:12, padding:'8px 16px', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:10, fontSize:14, color:'#f87171', fontWeight:700 }}>{feedback}</div>
         )}
 
-        {/* Estado: jugando */}
         {estado === 'jugando' && (
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {mostrandoInput ? (
               <div style={{ display:'flex', gap:8 }}>
-                <input
-                  id="adivina-input"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  placeholder="Nombre o apellido..."
-                  style={{ flex:1, padding:'13px 16px', borderRadius:12, border:'1px solid rgba(99,179,237,0.3)', background:'rgba(99,179,237,0.08)', color:'#e8eaf0', fontSize:15, outline:'none' }}
-                />
+                <input id="adivina-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSubmit()} placeholder="Nombre o apellido..." style={{ flex:1, padding:'13px 16px', borderRadius:12, border:'1px solid rgba(99,179,237,0.3)', background:'rgba(99,179,237,0.08)', color:'#e8eaf0', fontSize:15, outline:'none' }} />
                 <button onClick={handleSubmit} style={{ padding:'13px 18px', borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#fff', fontSize:15, fontWeight:900, cursor:'pointer' }}>→</button>
               </div>
             ) : (
               <button onClick={intentarAdivinar} style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#fff', fontSize:15, fontWeight:900, cursor:'pointer' }}>
-                🎯 Intentar adivinar — +{puntosRonda} pts
+                🎯 Intentar adivinar — +{pts} pts
               </button>
             )}
-
             {pistasReveladas < MAX_PISTAS && (
               <button onClick={siguientePista} style={{ width:'100%', padding:13, borderRadius:12, border:'1px solid rgba(99,179,237,0.25)', background:'rgba(99,179,237,0.06)', color:'#63b3ed', fontSize:14, fontWeight:700, cursor:'pointer' }}>
                 💡 Ver pista {pistasReveladas + 1} de {MAX_PISTAS} (+{MAX_PISTAS - pistasReveladas} pts)
               </button>
             )}
-
-            <button onClick={rendirse} style={{ width:'100%', padding:11, borderRadius:10, border:'1px solid rgba(239,68,68,0.25)', background:'rgba(239,68,68,0.06)', color:'#f87171', fontSize:13, fontWeight:700, cursor:'pointer' }}>
-              🏳️ Rendirse
-            </button>
-            <button onClick={salirAlMenu} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>
-              Salir al menú
-            </button>
+            <button onClick={rendirse} style={{ width:'100%', padding:11, borderRadius:10, border:'1px solid rgba(239,68,68,0.25)', background:'rgba(239,68,68,0.06)', color:'#f87171', fontSize:13, fontWeight:700, cursor:'pointer' }}>🏳️ Rendirse</button>
+            <button onClick={salirAlMenu} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>Salir al menú</button>
           </div>
         )}
 
-        {/* Estado: acertado */}
         {estado === 'acertado' && (
           <div style={{ textAlign:'center', padding:20, background:'rgba(34,197,94,0.08)', border:'1px solid rgba(34,197,94,0.25)', borderRadius:14, marginBottom:12 }}>
             <div style={{ fontSize:52, marginBottom:8 }}>🎉</div>
             <div style={{ fontSize:22, fontWeight:900, color:'#22c55e', marginBottom:4 }}>¡Correcto!</div>
             <div style={{ fontSize:28, fontWeight:900, color:'#86efac', marginBottom:4 }}>{jugador.nombre}</div>
-            <div style={{ fontSize:16, color:'#63b3ed', fontWeight:700, marginBottom:4 }}>+{puntosRonda} pts esta ronda</div>
-            <div style={{ fontSize:14, color:'#fbbf24', fontWeight:700, marginBottom:20 }}>Total: {puntosTotal} pts</div>
-            <button onClick={siguienteRonda} style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#fff', fontSize:15, fontWeight:900, cursor:'pointer', marginBottom:8 }}>
-              ⚽ Siguiente jugador
-            </button>
-            <button onClick={salirAlMenu} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>
-              Salir al menú
-            </button>
+            <div style={{ fontSize:16, color:'#63b3ed', fontWeight:700, marginBottom:4 }}>+{pts} pts esta ronda</div>
+            <div style={{ fontSize:14, color:'#fbbf24', fontWeight:700, marginBottom:20 }}>Total sesión: {puntosLocal} pts</div>
+            {user && <div style={{ fontSize:12, color:'rgba(255,255,255,0.3)', marginBottom:16 }}>✨ +{pts} XP guardados en tu cuenta</div>}
+            <button onClick={siguienteRonda} style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#fff', fontSize:15, fontWeight:900, cursor:'pointer', marginBottom:8 }}>⚽ Siguiente jugador</button>
+            <button onClick={salirAlMenu} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>Salir al menú</button>
           </div>
         )}
 
-        {/* Estado: rendido / sin vidas */}
         {estado === 'rendido' && (
           <div style={{ textAlign:'center', padding:20, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:14, marginBottom:12 }}>
             <div style={{ fontSize:52, marginBottom:8 }}>{vidas <= 0 ? '💔' : '🏳️'}</div>
             <div style={{ fontSize:18, fontWeight:900, color:'#f87171', marginBottom:4 }}>{vidas <= 0 ? '¡Sin vidas!' : 'Te has rendido'}</div>
             <div style={{ fontSize:13, color:'#8a9ab0', marginBottom:4 }}>Era:</div>
             <div style={{ fontSize:26, fontWeight:900, color:'#e8eaf0', marginBottom:4 }}>{jugador.nombre}</div>
-            <div style={{ fontSize:14, color:'#fbbf24', fontWeight:700, marginBottom:20 }}>Total acumulado: {puntosTotal} pts</div>
-            <button onClick={siguienteRonda} style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#fff', fontSize:15, fontWeight:900, cursor:'pointer', marginBottom:8 }}>
-              ⚽ Siguiente jugador
-            </button>
-            <button onClick={salirAlMenu} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>
-              Salir al menú
-            </button>
+            <div style={{ fontSize:14, color:'#fbbf24', fontWeight:700, marginBottom:20 }}>Total sesión: {puntosLocal} pts</div>
+            <button onClick={siguienteRonda} style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#fff', fontSize:15, fontWeight:900, cursor:'pointer', marginBottom:8 }}>⚽ Siguiente jugador</button>
+            <button onClick={salirAlMenu} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#4a6080', fontSize:13, cursor:'pointer' }}>Salir al menú</button>
           </div>
         )}
 
-        {/* Historial */}
         {historial.length > 0 && (
           <div style={{ marginTop:20, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:14 }}>
             <div style={{ fontSize:11, color:'#4a6080', letterSpacing:2, marginBottom:10, textTransform:'uppercase' }}>Historial</div>
@@ -284,7 +282,14 @@ export default function AdivinaIndividual() {
           </div>
         )}
       </div>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
+
+      {/* BARRA XP FLOTANTE */}
+      {user && <XPBar totalPoints={totalXP} puntosGanados={lastGained} />}
+
+      <style>{`
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeInUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+      `}</style>
     </div>
   )
 }
