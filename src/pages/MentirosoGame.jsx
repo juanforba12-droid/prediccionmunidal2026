@@ -32,14 +32,11 @@ export default function MentirosoGame() {
     setMyId(uid)
     setMyNombre(nombre || '')
     loadSession()
-    // Poll cada 1.5 segundos
     pollRef.current = setInterval(loadSession, 1500)
     return () => clearInterval(pollRef.current)
   }, [code])
 
-  useEffect(() => {
-    sessionRef.current = session
-  }, [session])
+  useEffect(() => { sessionRef.current = session }, [session])
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
@@ -47,10 +44,7 @@ export default function MentirosoGame() {
 
   const loadSession = useCallback(async () => {
     const { data } = await supabase.from('mentiroso_sessions').select('*').eq('code', code).single()
-    if (data) {
-      setSession(data)
-      setLoading(false)
-    }
+    if (data) { setSession(data); setLoading(false) }
   }, [code])
 
   const update = async (changes) => {
@@ -82,8 +76,10 @@ export default function MentirosoGame() {
     if (turnoActual?.id !== uid) return
     const palabraEnviada = mensaje.trim().split(' ')[0]
     const chat = [...(session.chat || []), {
-      id: uid, nombre: myNombre || localStorage.getItem(`mentiroso_nombre_${code}`),
-      texto: palabraEnviada, ts: Date.now()
+      id: uid,
+      nombre: myNombre || localStorage.getItem(`mentiroso_nombre_${code}`),
+      texto: palabraEnviada,
+      ts: Date.now()
     }]
     setMensaje('')
     const nextIdx = ((session.turno_idx || 0) + 1) % activos.length
@@ -99,13 +95,13 @@ export default function MentirosoGame() {
     if (votoLocal) return
     const uid = localStorage.getItem(`mentiroso_uid_${code}`)
     setVotoLocal(votadoId)
-    const votos = { ...(session.votos || {}), [uid]: votadoId }
+    const votosActuales = { ...(session.votos || {}), [uid]: votadoId }
     const activos = session.jugadores.filter(j => !(session.eliminados || []).includes(j.id))
-    const todosVotaron = activos.every(j => votos[j.id])
+    const todosVotaron = activos.every(j => votosActuales[j.id])
 
     if (todosVotaron) {
       const conteo = {}
-      Object.values(votos).forEach(v => { conteo[v] = (conteo[v] || 0) + 1 })
+      Object.values(votosActuales).forEach(v => { conteo[v] = (conteo[v] || 0) + 1 })
       const maxVotos = Math.max(...Object.values(conteo))
       const eliminado = Object.keys(conteo).find(k => conteo[k] === maxVotos)
       const eliminados = [...(session.eliminados || []), eliminado]
@@ -114,15 +110,22 @@ export default function MentirosoGame() {
       const soloQuedanDos = activosRestantes.length <= 2
 
       if (impostorEliminado) {
-        await update({ votos, eliminados, estado: 'fin', ganador: 'jugadores' })
+        await update({ votos: votosActuales, eliminados, estado: 'fin', ganador: 'jugadores' })
       } else if (soloQuedanDos) {
-        await update({ votos, eliminados, estado: 'fin', ganador: 'impostor' })
+        await update({ votos: votosActuales, eliminados, estado: 'fin', ganador: 'impostor' })
       } else {
         setVotoLocal(null)
-        await update({ votos, eliminados, estado: 'jugando', turno_idx: 0, chat: [], votos: {}, ronda: (session.ronda || 1) + 1 })
+        await update({
+          votos: {},
+          eliminados,
+          estado: 'jugando',
+          turno_idx: 0,
+          chat: [],
+          ronda: (session.ronda || 1) + 1
+        })
       }
     } else {
-      await update({ votos })
+      await update({ votos: votosActuales })
     }
   }
 
@@ -207,7 +210,6 @@ export default function MentirosoGame() {
         {/* JUGANDO / VOTACION */}
         {(session.estado === 'jugando' || session.estado === 'votacion') && (
           <div>
-            {/* Mi palabra */}
             {miPalabra && (
               <div style={{ ...card, background: miPalabra === 'IMPOSTOR' ? 'rgba(230,57,70,0.1)' : 'rgba(42,157,143,0.1)', border: miPalabra === 'IMPOSTOR' ? '1px solid rgba(230,57,70,0.3)' : '1px solid rgba(42,157,143,0.3)', textAlign:'center' }}>
                 <div style={{ fontSize:12, color:'rgba(255,255,255,0.4)', marginBottom:6 }}>{soyEliminado ? 'Fuiste eliminado. La palabra era:' : 'Tu palabra es'}</div>
@@ -217,7 +219,6 @@ export default function MentirosoGame() {
               </div>
             )}
 
-            {/* Turno */}
             {session.estado === 'jugando' && (
               <div style={{ ...card, textAlign:'center', background: esMiTurno ? 'rgba(155,93,229,0.12)' : 'rgba(255,255,255,0.03)', border: esMiTurno ? '1px solid rgba(155,93,229,0.4)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize:12, color:'rgba(255,255,255,0.4)', marginBottom:4 }}>Turno de</div>
@@ -226,7 +227,6 @@ export default function MentirosoGame() {
               </div>
             )}
 
-            {/* Chat */}
             <div style={{ ...card, padding:0, overflow:'hidden' }}>
               <div style={{ padding:'10px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)', fontSize:12, color:'#6a4090' }}>
                 Ronda {session.ronda} · {session.estado === 'votacion' ? 'Hora de votar' : 'Chat'}
@@ -256,7 +256,6 @@ export default function MentirosoGame() {
               )}
             </div>
 
-            {/* Jugadores */}
             <div style={card}>
               <div style={{ fontSize:12, color:'#6a4090', marginBottom:10 }}>Jugadores</div>
               <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
@@ -272,7 +271,6 @@ export default function MentirosoGame() {
               </div>
             </div>
 
-            {/* VOTACION */}
             {session.estado === 'votacion' && !soyEliminado && (
               <div style={{ ...card, background:'rgba(244,162,97,0.06)', border:'1px solid rgba(244,162,97,0.2)' }}>
                 <div style={{ fontWeight:700, fontSize:16, color:'#f4a261', marginBottom:4 }}>Hora de votar</div>
