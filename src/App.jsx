@@ -16,6 +16,7 @@ import AdivinaHome from './pages/AdivinaHome.jsx'
 import AdivinaIndividual from './pages/AdivinaIndividual.jsx'
 import AdivinaOnline from './pages/AdivinaOnline.jsx'
 
+// Solo protege las rutas de predicción (requieren cuenta para guardar datos)
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(undefined)
   useEffect(() => {
@@ -34,24 +35,27 @@ export default function App() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-      {/* Prediccion */}
+
+      {/* Inicio — libre, sin login obligatorio */}
+      <Route path="/" element={<Home />} />
+
+      {/* Prediccion — requiere cuenta (guarda predicciones) */}
       <Route path="/prediccion" element={<ProtectedRoute><MyGroups /></ProtectedRoute>} />
       <Route path="/crear" element={<ProtectedRoute><CreateGroup /></ProtectedRoute>} />
       <Route path="/unirse" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
       <Route path="/unirse/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
       <Route path="/grupo/:code" element={<ProtectedRoute><Game /></ProtectedRoute>} />
-      {/* Mentiroso */}
-      <Route path="/mentiroso" element={<ProtectedRoute><MentirosoHome /></ProtectedRoute>} />
-      <Route path="/mentiroso/:code" element={<ProtectedRoute><MentirosoGame /></ProtectedRoute>} />
-      {/* Top 10 */}
-      <Route path="/topdiezgame" element={<ProtectedRoute><TopDiezHome /></ProtectedRoute>} />
-      <Route path="/topdiezgame/individual" element={<ProtectedRoute><TopDiezIndividual /></ProtectedRoute>} />
-      <Route path="/topdiezgame/online" element={<ProtectedRoute><TopDiezOnline /></ProtectedRoute>} />
-      {/* Adivina */}
-      <Route path="/adivina" element={<ProtectedRoute><AdivinaHome /></ProtectedRoute>} />
-      <Route path="/adivina/individual" element={<ProtectedRoute><AdivinaIndividual /></ProtectedRoute>} />
-      <Route path="/adivina/online" element={<ProtectedRoute><AdivinaOnline /></ProtectedRoute>} />
+
+      {/* Juegos — libres, invitado o registrado */}
+      <Route path="/mentiroso" element={<MentirosoHome />} />
+      <Route path="/mentiroso/:code" element={<MentirosoGame />} />
+      <Route path="/topdiezgame" element={<TopDiezHome />} />
+      <Route path="/topdiezgame/individual" element={<TopDiezIndividual />} />
+      <Route path="/topdiezgame/online" element={<TopDiezOnline />} />
+      <Route path="/adivina" element={<AdivinaHome />} />
+      <Route path="/adivina/individual" element={<AdivinaIndividual />} />
+      <Route path="/adivina/online" element={<AdivinaOnline />} />
+
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
