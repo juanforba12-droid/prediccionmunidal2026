@@ -371,7 +371,79 @@ export const JUGADORES = [
   { nombre: 'Hidetoshi Nakata', pais: 'Japon', club: 'AS Roma', epoca: 'Historico' },
   { nombre: 'Park Ji-sung', pais: 'Corea del Sur', club: 'Manchester United', epoca: 'Historico' },
   { nombre: 'Cha Bum-kun', pais: 'Corea del Sur', club: 'Eintracht Frankfurt', epoca: 'Historico' },
+  // NUEVOS JUGADORES para gameData.js — Mentiroso
+// Solo los que NO están ya en la lista original (200 jugadores)
+// Todos muy conocidos
+
+const NUEVOS_JUGADORES_MENTIROSO = [
+  // Leyendas absolutas que faltaban
+  { nombre: 'Diego Maradona', pais: 'Argentina', club: 'Napoles', epoca: 'Historico' },
+  { nombre: 'Pele', pais: 'Brasil', club: 'Santos', epoca: 'Historico' },
+  { nombre: 'Johan Cruyff', pais: 'Paises Bajos', club: 'Barcelona', epoca: 'Historico' },
+  { nombre: 'Franz Beckenbauer', pais: 'Alemania', club: 'Bayern Munich', epoca: 'Historico' },
+  { nombre: 'Marco van Basten', pais: 'Paises Bajos', club: 'AC Milan', epoca: 'Historico' },
+  { nombre: 'Michel Platini', pais: 'Francia', club: 'Juventus', epoca: 'Historico' },
+  { nombre: 'Eusebio', pais: 'Portugal', club: 'Benfica', epoca: 'Historico' },
+  { nombre: 'Lev Yashin', pais: 'URSS', club: 'Dynamo Moscu', epoca: 'Historico' },
+  { nombre: 'Garrincha', pais: 'Brasil', club: 'Botafogo', epoca: 'Historico' },
+  { nombre: 'George Best', pais: 'Irlanda del Norte', club: 'Manchester United', epoca: 'Historico' },
+  { nombre: 'Hristo Stoichkov', pais: 'Bulgaria', club: 'Barcelona', epoca: 'Historico' },
+  { nombre: 'Gabriel Batistuta', pais: 'Argentina', club: 'Fiorentina', epoca: 'Historico' },
+  { nombre: 'Romario', pais: 'Brasil', club: 'Barcelona', epoca: 'Historico' },
+  { nombre: 'Bebeto', pais: 'Brasil', club: 'Vasco da Gama', epoca: 'Historico' },
+  { nombre: 'Karl-Heinz Rummenigge', pais: 'Alemania', club: 'Bayern Munich', epoca: 'Historico' },
+  { nombre: 'Miroslav Klose', pais: 'Alemania', club: 'Bayern Munich', epoca: 'Historico' },
+  { nombre: 'Lothar Matthaus', pais: 'Alemania', club: 'Bayern Munich', epoca: 'Historico' },
+  { nombre: 'Michael Ballack', pais: 'Alemania', club: 'Bayern Munich', epoca: 'Historico' },
+  { nombre: 'Franco Baresi', pais: 'Italia', club: 'AC Milan', epoca: 'Historico' },
+  { nombre: 'Fabio Cannavaro', pais: 'Italia', club: 'Real Madrid', epoca: 'Historico' },
+  { nombre: 'Alessandro Nesta', pais: 'Italia', club: 'AC Milan', epoca: 'Historico' },
+  { nombre: 'Juan Roman Riquelme', pais: 'Argentina', club: 'Boca Juniors', epoca: 'Historico' },
+  { nombre: 'Gary Lineker', pais: 'Inglaterra', club: 'Barcelona', epoca: 'Historico' },
+  { nombre: 'Bobby Charlton', pais: 'Inglaterra', club: 'Manchester United', epoca: 'Historico' },
+  { nombre: 'Paul Gascoigne', pais: 'Inglaterra', club: 'Tottenham', epoca: 'Historico' },
+  { nombre: 'Eric Cantona', pais: 'Francia', club: 'Manchester United', epoca: 'Historico' },
+  { nombre: 'Cafu', pais: 'Brasil', club: 'AC Milan', epoca: 'Historico' },
+  // Actuales que faltaban
+  { nombre: 'Pedri', pais: 'España', club: 'Barcelona', epoca: 'Actual' },
+  { nombre: 'Lamine Yamal', pais: 'España', club: 'Barcelona', epoca: 'Actual' },
+  { nombre: 'Nico Williams', pais: 'España', club: 'Athletic Club', epoca: 'Actual' },
+  { nombre: 'Jude Bellingham', pais: 'Inglaterra', club: 'Real Madrid', epoca: 'Actual' },
+  { nombre: 'Florian Wirtz', pais: 'Alemania', club: 'Bayer Leverkusen', epoca: 'Actual' },
+  { nombre: 'Jamal Musiala', pais: 'Alemania', club: 'Bayern Munich', epoca: 'Actual' },
+  { nombre: 'Cole Palmer', pais: 'Inglaterra', club: 'Chelsea', epoca: 'Actual' },
+  { nombre: 'Phil Foden', pais: 'Inglaterra', club: 'Manchester City', epoca: 'Actual' },
+  { nombre: 'Bukayo Saka', pais: 'Inglaterra', club: 'Arsenal', epoca: 'Actual' },
+  { nombre: 'Declan Rice', pais: 'Inglaterra', club: 'Arsenal', epoca: 'Actual' },
 ]
+
+// NUEVOS CLUBES para gameData.js
+const NUEVOS_CLUBES_MENTIROSO = [
+  { nombre: 'Atletico de Madrid', liga: 'LaLiga' },   // ya estaba — verificar
+  { nombre: 'Real Betis', liga: 'LaLiga' },
+  { nombre: 'Celta de Vigo', liga: 'LaLiga' },
+  { nombre: 'Osasuna', liga: 'LaLiga' },
+  { nombre: 'Girona', liga: 'LaLiga' },
+  { nombre: 'Leicester City', liga: 'Premier League' },
+  { nombre: 'West Ham United', liga: 'Premier League' },
+  { nombre: 'Everton', liga: 'Premier League' },
+  { nombre: 'Napoles', liga: 'Serie A' },
+  { nombre: 'Sampdoria', liga: 'Serie A' },
+  { nombre: 'Torino', liga: 'Serie A' },
+  { nombre: 'Schalke 04', liga: 'Bundesliga' },
+  { nombre: 'Hamburgo SV', liga: 'Bundesliga' },
+  { nombre: 'VfB Stuttgart', liga: 'Bundesliga' },
+  { nombre: 'Real Zaragoza', liga: 'Historico' },
+  { nombre: 'Deportivo de La Coruna', liga: 'Historico' },
+  { nombre: 'Valencia CF', liga: 'Historico' },
+  { nombre: 'Fiorentina', liga: 'Historico' },
+  { nombre: 'Estrella Roja', liga: 'Historico' },
+  { nombre: 'Olympique de Marsella', liga: 'Historico' },
+]
+
+console.log('Nuevos jugadores Mentiroso:', NUEVOS_JUGADORES_MENTIROSO.length)
+console.log('Nuevos clubes Mentiroso:', NUEVOS_CLUBES_MENTIROSO.length)
+
 
 // Helper: get all items for a category
 export const getItems = (categoria) => {
