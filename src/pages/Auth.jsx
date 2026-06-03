@@ -1,87 +1,126 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
+import { addPoints } from '../lib/userPoints.js'
+import { POINTS } from '../lib/ranks.js'
 
 export default function Auth() {
-  const [nombre, setNombre] = useState('')
+  const nav = useNavigate()
+  const [mode, setMode] = useState('login') // 'login' | 'register'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [mode, setMode] = useState('login')
-  const nav = useNavigate()
+  const [msg, setMsg] = useState('')
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) nav('/', { replace: true })
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) nav('/', { replace: true })
-    })
-    return () => subscription.unsubscribe()
-  }, [nav])
+  const handleLogin = async () => {
+    if (!email || !password) { setMsg('Rellena email y contraseña'); return }
+    setLoading(true); setMsg('')
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setMsg('Email o contraseña incorrectos')
+    else nav('/')
+    setLoading(false)
+  }
 
-  const handleSubmit = async () => {
-    if (!email || !password) { setError('Rellena todos los campos'); return }
-    if (mode === 'register' && !nombre) { setError('Pon tu nombre'); return }
-    setLoading(true); setError('')
-    try {
-      if (mode === 'register') {
-        const { data, error: err } = await supabase.auth.signUp({
-          email, password,
-          options: { data: { full_name: nombre } }
-        })
-        if (err) throw err
-        if (data.session) { nav('/', { replace: true }); return }
-        const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password })
-        if (!loginErr) nav('/', { replace: true })
-        else { setError('Cuenta creada. Inicia sesión.'); setMode('login') }
-      } else {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-        if (err) throw err
-        nav('/', { replace: true })
+  const handleRegister = async () => {
+    if (!email || !password || !name) { setMsg('Rellena todos los campos'); return }
+    if (password.length < 6) { setMsg('Mínimo 6 caracteres en la contraseña'); return }
+    setLoading(true); setMsg('')
+    const { data, error } = await supabase.auth.signUp({
+      email, password,
+      options: { data: { full_name: name } }
+    })
+    if (error) {
+      setMsg(error.message.includes('already') ? 'Este email ya está registrado' : 'Error al registrarse')
+    } else {
+      // Dar puntos de bienvenida
+      if (data.user) {
+        await addPoints(data.user.id, POINTS.REGISTER, 'registro_bienvenida')
       }
-    } catch (err) {
-      const msg = err.message
-      if (msg.includes('Invalid login')) setError('Email o contraseña incorrectos')
-      else if (msg.includes('already registered')) setError('Email ya registrado. Inicia sesión.')
-      else setError(msg)
+      setMsg('¡Cuenta creada! Ya puedes jugar 🎉')
+      setTimeout(() => nav('/'), 1500)
     }
     setLoading(false)
   }
 
-  const input = (props) => ({
-    style: { width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 15, marginBottom: 12, boxSizing: 'border-box', outline: 'none' },
-    onKeyDown: e => e.key === 'Enter' && handleSubmit(),
-    ...props
-  })
-
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', borderRadius: 20, padding: 40, width: '100%', maxWidth: 400, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 48 }}>⚽</div>
-          <h1 style={{ color: '#fff', margin: '8px 0 4px', fontSize: 24, fontWeight: 700 }}>Predicción Mundial</h1>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0 }}>2026</p>
+    <div style={{ minHeight:'100vh', background:'linear-gradient(135deg,#0a0a1a 0%,#0d1117 50%,#0a0a1a 100%)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', fontFamily:'system-ui,sans-serif', padding:20 }}>
+
+      {/* Volver */}
+      <button onClick={() => nav('/')} style={{ position:'absolute', top:20, left:20, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'8px 14px', color:'rgba(255,255,255,0.6)', cursor:'pointer', fontSize:13 }}>
+        ← Volver
+      </button>
+
+      {/* Logo */}
+      <div style={{ textAlign:'center', marginBottom:36 }}>
+        <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:56, letterSpacing:10, background:'linear-gradient(135deg,#e63946,#ff6b6b)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1, marginBottom:6 }}>JFEE</div>
+        <div style={{ color:'rgba(255,255,255,0.3)', fontSize:13, letterSpacing:3, textTransform:'uppercase' }}>Juegos de Futbol En Espanol</div>
+      </div>
+
+      <div style={{ background:'#0f0f1a', border:'1px solid rgba(255,255,255,0.08)', borderRadius:24, padding:28, width:'100%', maxWidth:380 }}>
+
+        {/* Tabs */}
+        <div style={{ display:'flex', background:'rgba(255,255,255,0.05)', borderRadius:12, padding:4, marginBottom:24 }}>
+          {['login','register'].map(m => (
+            <button key={m} onClick={() => { setMode(m); setMsg('') }} style={{ flex:1, padding:'10px', borderRadius:10, border:'none', background: mode===m ? 'rgba(230,57,70,0.2)' : 'transparent', color: mode===m ? '#e63946' : 'rgba(255,255,255,0.4)', fontWeight:700, fontSize:14, cursor:'pointer', transition:'all 0.2s' }}>
+              {m === 'login' ? 'Iniciar sesión' : 'Registrarse'}
+            </button>
+          ))}
         </div>
 
-        {error && <div style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, color: '#fca5a5', fontSize: 14 }}>{error}</div>}
-
+        {/* Bonus registro */}
         {mode === 'register' && (
-          <input {...input({ type: 'text', placeholder: 'Tu nombre', value: nombre, onChange: e => setNombre(e.target.value) })} />
+          <div style={{ background:'rgba(230,57,70,0.08)', border:'1px solid rgba(230,57,70,0.2)', borderRadius:12, padding:'10px 14px', marginBottom:16, fontSize:13, color:'rgba(255,255,255,0.6)', textAlign:'center' }}>
+            🎁 Regístrate y recibe <strong style={{ color:'#e63946' }}>+{POINTS.REGISTER} puntos</strong> de bienvenida
+          </div>
         )}
-        <input {...input({ type: 'email', placeholder: 'Email', value: email, onChange: e => setEmail(e.target.value) })} />
-        <input {...input({ type: 'password', placeholder: 'Contraseña', value: password, onChange: e => setPassword(e.target.value), style: { width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 15, marginBottom: 20, boxSizing: 'border-box', outline: 'none' } })} />
 
-        <button onClick={handleSubmit} disabled={loading} style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: loading ? 'rgba(229,57,53,0.5)' : '#e53935', color: '#fff', fontSize: 16, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', marginBottom: 20 }}>
-          {loading ? 'Cargando...' : mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
+        {/* Campos */}
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          {mode === 'register' && (
+            <input
+              placeholder="Tu nombre o apodo"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              style={{ padding:'12px 14px', borderRadius:12, border:'1px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.05)', color:'#e8eaf0', fontSize:15, outline:'none' }}
+            />
+          )}
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            style={{ padding:'12px 14px', borderRadius:12, border:'1px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.05)', color:'#e8eaf0', fontSize:15, outline:'none' }}
+          />
+          <input
+            type="password"
+            placeholder="Contraseña"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key==='Enter' && (mode==='login' ? handleLogin() : handleRegister())}
+            style={{ padding:'12px 14px', borderRadius:12, border:'1px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.05)', color:'#e8eaf0', fontSize:15, outline:'none' }}
+          />
+        </div>
+
+        {msg && (
+          <div style={{ marginTop:12, fontSize:13, color: msg.includes('!') || msg.includes('creada') ? '#2a9d8f' : '#fca5a5', textAlign:'center' }}>
+            {msg}
+          </div>
+        )}
+
+        <button
+          onClick={mode === 'login' ? handleLogin : handleRegister}
+          disabled={loading}
+          style={{ marginTop:16, width:'100%', padding:'14px', borderRadius:14, border:'none', background: loading ? 'rgba(230,57,70,0.3)' : 'linear-gradient(135deg,#e63946,#c1121f)', color:'#fff', fontSize:16, fontWeight:800, cursor: loading ? 'default' : 'pointer', letterSpacing:1 }}
+        >
+          {loading ? '...' : mode === 'login' ? 'ENTRAR' : 'CREAR CUENTA'}
         </button>
 
-        <div style={{ textAlign: 'center' }}>
-          <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setNombre('') }}
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 14 }}>
-            {mode === 'login' ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
-          </button>
+        <div style={{ marginTop:16, textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.25)' }}>
+          ¿Solo quieres explorar?{' '}
+          <span onClick={() => nav('/')} style={{ color:'rgba(255,255,255,0.5)', cursor:'pointer', textDecoration:'underline' }}>
+            Continuar como invitado
+          </span>
         </div>
       </div>
     </div>
