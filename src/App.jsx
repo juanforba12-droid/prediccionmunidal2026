@@ -15,8 +15,8 @@ import TopDiezOnline from './pages/TopDiezOnline.jsx'
 import AdivinaHome from './pages/AdivinaHome.jsx'
 import AdivinaIndividual from './pages/AdivinaIndividual.jsx'
 import AdivinaOnline from './pages/AdivinaOnline.jsx'
+import Ranking from './pages/Ranking.jsx'
 
-// Solo protege las rutas de predicción (requieren cuenta para guardar datos)
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(undefined)
   useEffect(() => {
@@ -35,18 +35,13 @@ export default function App() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-
-      {/* Inicio — libre, sin login obligatorio */}
       <Route path="/" element={<Home />} />
-
-      {/* Prediccion — requiere cuenta (guarda predicciones) */}
+      <Route path="/ranking" element={<Ranking />} />
       <Route path="/prediccion" element={<ProtectedRoute><MyGroups /></ProtectedRoute>} />
       <Route path="/crear" element={<ProtectedRoute><CreateGroup /></ProtectedRoute>} />
       <Route path="/unirse" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
       <Route path="/unirse/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
       <Route path="/grupo/:code" element={<ProtectedRoute><Game /></ProtectedRoute>} />
-
-      {/* Juegos — libres, invitado o registrado */}
       <Route path="/mentiroso" element={<MentirosoHome />} />
       <Route path="/mentiroso/:code" element={<MentirosoGame />} />
       <Route path="/topdiezgame" element={<TopDiezHome />} />
@@ -55,7 +50,6 @@ export default function App() {
       <Route path="/adivina" element={<AdivinaHome />} />
       <Route path="/adivina/individual" element={<AdivinaIndividual />} />
       <Route path="/adivina/online" element={<AdivinaOnline />} />
-
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
