@@ -8,16 +8,6 @@ import {
 
 const ALL_MATCHES = [...PARTIDOS_GRUPOS, ...PARTIDOS_ELIMINATORIAS]
 
-const EQUIPOS_MUNDIAL = [
-  'Argentina','Australia','Bélgica','Brasil','Camerún','Canadá','Chile','Colombia',
-  'Corea del Sur','Costa Rica','Croacia','Dinamarca','Ecuador','Egipto','España',
-  'Estados Unidos','Francia','Ghana','Honduras','Hungría','Indonesia','Inglaterra',
-  'Iran','Irak','Italia','Jamaica','Japón','Kazajistán','Kenia','Marruecos',
-  'México','Nigeria','Nueva Zelanda','Países Bajos','Panamá','Paraguay','Perú',
-  'Polonia','Portugal','Qatar','Rep. Checa','Rumanía','Senegal','Serbia','Suecia',
-  'Suiza','Turquía','Ucrania','Uruguay','Venezuela'
-]
-
 export default function Game() {
   const { code } = useParams()
   const nav = useNavigate()
@@ -28,12 +18,9 @@ export default function Game() {
   const [preds, setPreds] = useState({})
   const [reales, setReales] = useState({})
   const [allPreds, setAllPreds] = useState({})
-
-  // Extras predictions
-  const [extras, setExtras] = useState({})        // my extras predictions
-  const [extrasReal, setExtrasReal] = useState({}) // admin real values
-  const [allExtras, setAllExtras] = useState({})   // all players extras
-
+  const [extras, setExtras] = useState({})
+  const [extrasReal, setExtrasReal] = useState({})
+  const [allExtras, setAllExtras] = useState({})
   const [tab, setTab] = useState('quiniela')
   const [fase, setFase] = useState('grupos')
   const [jornada, setJornada] = useState('J1')
@@ -42,7 +29,6 @@ export default function Game() {
 
   const isCreator = group && myPlayer && group.creator_id === myPlayer.id
   const shareUrl = `${window.location.origin}/unirse/${code}`
-  const myPersonalUrl = myPlayer ? `${window.location.origin}/unirse/${code}?pid=${myPlayer.id}` : ''
 
   useEffect(() => {
     const me = localStorage.getItem(`player_${code}`)
@@ -65,11 +51,9 @@ export default function Game() {
         if (grpRes.data.extras_real) setExtrasReal(grpRes.data.extras_real)
       }
       if (plRes.data) setPlayers(plRes.data)
-
       const rMap = {}
       realesRes.data?.forEach(r => { rMap[r.match_id] = { l: r.goals_local ?? '', v: r.goals_vis ?? '' } })
       setReales(rMap)
-
       const me = JSON.parse(localStorage.getItem(`player_${code}`) || '{}')
       const apMap = {}
       const myMap = {}
@@ -80,15 +64,12 @@ export default function Game() {
       })
       setAllPreds(apMap)
       setPreds(myMap)
-
-      // Load extras
       const allExtrasMap = {}
       plRes.data?.forEach(pl => {
         if (pl.extras_pred) allExtrasMap[pl.id] = pl.extras_pred
         if (pl.id === me.id && pl.extras_pred) setExtras(pl.extras_pred)
       })
       setAllExtras(allExtrasMap)
-
     } catch(e) { console.error(e) }
     setLoading(false)
   }, [code])
@@ -129,7 +110,6 @@ export default function Game() {
     }, { onConflict: 'group_code,match_id' })
   }
 
-  // Save extras prediction (debounced)
   const extrasTimer = useRef(null)
   const saveExtras = (newExtras) => {
     setExtras(newExtras)
@@ -145,21 +125,13 @@ export default function Game() {
     await supabase.from('groups').update({ extras_real: newExtrasReal }).eq('code', code)
   }
 
-  // Compute extras points for a player
   const computeExtrasPoints = (playerId) => {
     const pp = allExtras[playerId] || {}
     const er = extrasReal || {}
     let pts = 0
-
-    // Goleadores: 5/3/1 pts
-    if (er.gol1 && pp.gol1 && pp.gol1.toLowerCase() === er.gol1.toLowerCase()) pts += 5
-    if (er.gol2 && pp.gol2 && pp.gol2.toLowerCase() === er.gol2.toLowerCase()) pts += 3
-    if (er.gol3 && pp.gol3 && pp.gol3.toLowerCase() === er.gol3.toLowerCase()) pts += 1
-    // Balón de oro: 5/3/1 pts
     if (er.balon1 && pp.balon1 && pp.balon1.toLowerCase() === er.balon1.toLowerCase()) pts += 5
     if (er.balon2 && pp.balon2 && pp.balon2.toLowerCase() === er.balon2.toLowerCase()) pts += 3
     if (er.balon3 && pp.balon3 && pp.balon3.toLowerCase() === er.balon3.toLowerCase()) pts += 1
-
     return pts
   }
 
@@ -219,6 +191,24 @@ export default function Game() {
     border:'1px solid rgba(255,215,0,0.3)',
     background:'rgba(255,215,0,0.06)',
     color:'#ffd700', fontSize:14, boxSizing:'border-box', outline:'none'
+  }
+
+  const MATCH_DATES = {
+    'Jue 11 Jun': new Date('2026-06-11'), 'Vie 12 Jun': new Date('2026-06-12'),
+    'Sáb 13 Jun': new Date('2026-06-13'), 'Dom 14 Jun': new Date('2026-06-14'),
+    'Lun 15 Jun': new Date('2026-06-15'), 'Mar 16 Jun': new Date('2026-06-16'),
+    'Mié 17 Jun': new Date('2026-06-17'), 'Jue 18 Jun': new Date('2026-06-18'),
+    'Vie 19 Jun': new Date('2026-06-19'), 'Sáb 20 Jun': new Date('2026-06-20'),
+    'Dom 21 Jun': new Date('2026-06-21'), 'Lun 22 Jun': new Date('2026-06-22'),
+    'Mar 23 Jun': new Date('2026-06-23'), 'Mié 24 Jun': new Date('2026-06-24'),
+    'Jue 25 Jun': new Date('2026-06-25'), 'Vie 26 Jun': new Date('2026-06-26'),
+    'Sáb 27 Jun': new Date('2026-06-27'), 'Mar 1 Jul': new Date('2026-07-01'),
+    'Mié 2 Jul': new Date('2026-07-02'), 'Jue 3 Jul': new Date('2026-07-03'),
+    'Vie 4 Jul': new Date('2026-07-04'), 'Sáb 5 Jul': new Date('2026-07-05'),
+    'Mar 8 Jul': new Date('2026-07-08'), 'Mié 9 Jul': new Date('2026-07-09'),
+    'Jue 10 Jul': new Date('2026-07-10'), 'Vie 11 Jul': new Date('2026-07-11'),
+    'Mar 15 Jul': new Date('2026-07-15'), 'Mié 16 Jul': new Date('2026-07-16'),
+    'Sáb 19 Jul': new Date('2026-07-19'),
   }
 
   return (
@@ -300,7 +290,7 @@ export default function Game() {
           </div>
 
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {matchesToShow.map((m, idx) => {
+            {matchesToShow.map((m) => {
               const pl = preds[m.id]?.l ?? ''
               const pv = preds[m.id]?.v ?? ''
               const rl = reales[m.id]?.l ?? ''
@@ -310,24 +300,6 @@ export default function Game() {
               const hasPred = pl !== '' || pv !== ''
               const mc = myPlayer?.color || '#e63946'
               const ptsBg = pts === 3 ? '#2a9d8f' : pts === 1 ? '#f4a261' : pts === 0 && hasReal ? '#e63946' : null
-
-              const MATCH_DATES = {
-                'Jue 11 Jun': new Date('2026-06-11'), 'Vie 12 Jun': new Date('2026-06-12'),
-                'Sáb 13 Jun': new Date('2026-06-13'), 'Dom 14 Jun': new Date('2026-06-14'),
-                'Lun 15 Jun': new Date('2026-06-15'), 'Mar 16 Jun': new Date('2026-06-16'),
-                'Mié 17 Jun': new Date('2026-06-17'), 'Jue 18 Jun': new Date('2026-06-18'),
-                'Vie 19 Jun': new Date('2026-06-19'), 'Sáb 20 Jun': new Date('2026-06-20'),
-                'Dom 21 Jun': new Date('2026-06-21'), 'Lun 22 Jun': new Date('2026-06-22'),
-                'Mar 23 Jun': new Date('2026-06-23'), 'Mié 24 Jun': new Date('2026-06-24'),
-                'Jue 25 Jun': new Date('2026-06-25'), 'Vie 26 Jun': new Date('2026-06-26'),
-                'Sáb 27 Jun': new Date('2026-06-27'), 'Mar 1 Jul': new Date('2026-07-01'),
-                'Mié 2 Jul': new Date('2026-07-02'), 'Jue 3 Jul': new Date('2026-07-03'),
-                'Vie 4 Jul': new Date('2026-07-04'), 'Sáb 5 Jul': new Date('2026-07-05'),
-                'Mar 8 Jul': new Date('2026-07-08'), 'Mié 9 Jul': new Date('2026-07-09'),
-                'Jue 10 Jul': new Date('2026-07-10'), 'Vie 11 Jul': new Date('2026-07-11'),
-                'Mar 15 Jul': new Date('2026-07-15'), 'Mié 16 Jul': new Date('2026-07-16'),
-                'Sáb 19 Jul': new Date('2026-07-19'),
-              }
               const matchDate = MATCH_DATES[m.fecha]
               const now = new Date()
               const lockDate = matchDate ? new Date(matchDate.getTime() - 24*60*60*1000) : null
@@ -385,51 +357,13 @@ export default function Game() {
             <div style={{ background:'rgba(255,255,255,0.03)', borderRadius:12, padding:'12px 16px', fontSize:12, color:'#2a6070', lineHeight:1.6 }}>
               🎯 Predicciones especiales con puntos extra. Guarda tus predicciones antes de que empiece el torneo.
             </div>
-
-            {/* MÁXIMO GOLEADOR */}
             <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16 }}>
-              <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:4 }}>⚽ Máximo goleador</div>
-              <div style={{ fontSize:11, color:'#2a4060', marginBottom:14 }}>5 pts 1º · 3 pts 2º · 1 pt 3º</div>
-
-              {[
-                { key:'gol1', label:'🥇 Máximo goleador', pts:5 },
-                { key:'gol2', label:'🥈 2º máximo goleador', pts:3 },
-                { key:'gol3', label:'🥉 3º máximo goleador', pts:1 },
-              ].map(({ key, label, pts }) => {
-                const myVal = extras[key] || ''
-                const realVal = extrasReal[key] || ''
-                const hit = realVal && myVal && myVal.toLowerCase() === realVal.toLowerCase()
-                return (
-                  <div key={key} style={{ marginBottom:12 }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                      <span style={{ fontSize:12, fontWeight:700, color: hit ? '#2a9d8f' : '#a0b4cc' }}>{label}</span>
-                      <span style={{ fontSize:11, color:'#2a4060' }}>+{pts} pts</span>
-                    </div>
-                    <input placeholder="Nombre del jugador..." value={myVal}
-                      onChange={e => saveExtras({ ...extras, [key]: e.target.value })}
-                      style={inpStyle(!!myVal)} />
-                    {realVal && <div style={{ fontSize:11, color: hit?'#2a9d8f':'#e63946', marginTop:4 }}>
-                      {hit ? `⭐ ¡Acertado! +${pts} pts` : `Real: ${realVal}`}
-                    </div>}
-                    {isCreator && (
-                      <input placeholder={`Admin — ${label} real`} value={realVal}
-                        onChange={e => saveExtrasReal({ ...extrasReal, [key]: e.target.value })}
-                        style={{ ...realInpStyle, marginTop:6 }} />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* BALÓN DE ORO */}
-            <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16 }}>
-              <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:4 }}>🏅 Balón de Oro</div>
-              <div style={{ fontSize:11, color:'#2a4060', marginBottom:14 }}>5 pts Oro · 3 pts Plata · 1 pt Bronce</div>
-
+              <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:4 }}>🏆 Premios del torneo</div>
+              <div style={{ fontSize:11, color:'#2a4060', marginBottom:14 }}>5 pts Balón de Oro · 3 pts Bota de Oro · 1 pt Mejor joven</div>
               {[
                 { key:'balon1', label:'🥇 Balón de Oro', pts:5 },
-                { key:'balon2', label:'🥈 Balón de Plata', pts:3 },
-                { key:'balon3', label:'🥉 Balón de Bronce', pts:1 },
+                { key:'balon2', label:'👟 Bota de Oro', pts:3 },
+                { key:'balon3', label:'🌟 Mejor jugador joven', pts:1 },
               ].map(({ key, label, pts }) => {
                 const myVal = extras[key] || ''
                 const realVal = extrasReal[key] || ''
@@ -455,8 +389,6 @@ export default function Game() {
                 )
               })}
             </div>
-
-            {/* Predictions of all players */}
             <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16 }}>
               <div style={{ fontWeight:700, fontSize:14, color:'#e8eaf0', marginBottom:12 }}>👥 Predicciones de todos</div>
               {players.map(pl => {
@@ -470,13 +402,11 @@ export default function Game() {
                       <span style={{ marginLeft:'auto', fontSize:12, color:'#2a9d8f', fontWeight:700 }}>+{epts} pts extras</span>
                     </div>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                      {[
-                        ['⚽1', ep.gol1], ['⚽2', ep.gol2], ['⚽3', ep.gol3],
-                        ['🏅', ep.balon1], ['🥈', ep.balon2], ['🥉', ep.balon3],
-                      ].filter(([,v]) => v).map(([icon, val], i) => (
+                      {[['🥇', ep.balon1], ['👟', ep.balon2], ['🌟', ep.balon3]]
+                        .filter(([,v]) => v).map(([icon, val], i) => (
                         <span key={i} style={{ fontSize:11, background:'rgba(255,255,255,0.05)', padding:'3px 8px', borderRadius:20, color:'#8a9ab0' }}>{icon} {val}</span>
                       ))}
-                      {Object.keys(ep).length === 0 && <span style={{ fontSize:11, color:'#2a4060' }}>Sin predicciones aún</span>}
+                      {!ep.balon1 && !ep.balon2 && !ep.balon3 && <span style={{ fontSize:11, color:'#2a4060' }}>Sin predicciones aún</span>}
                     </div>
                   </div>
                 )
@@ -504,9 +434,6 @@ export default function Game() {
                       <span style={{ fontSize:11, color:'#f4a261' }}>✓ {pl.result} resultados</span>
                       {epts > 0 && <span style={{ fontSize:11, color:'#ffd700' }}>🎯 +{epts} extras</span>}
                     </div>
-                    <div style={{ marginTop:6, height:4, borderRadius:2, background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
-                      <div style={{ height:'100%', width:`${Math.min((pl.pts/(ALL_MATCHES.length*3+60))*100,100)}%`, background:`linear-gradient(90deg,${pl.color},${pl.color}88)`, borderRadius:2 }} />
-                    </div>
                   </div>
                   <div style={{ textAlign:'right' }}>
                     <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:36, color:pl.color, lineHeight:1 }}>{pl.pts}</div>
@@ -515,15 +442,6 @@ export default function Game() {
                 </div>
               )
             })}
-            <div style={{ marginTop:8, padding:'14px', background:'rgba(255,255,255,0.03)', borderRadius:12, display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap' }}>
-              {[['⭐','3 pts','Marcador exacto'],['✓','1 pt','Resultado correcto'],['🏆','10 pts','Campeón'],['⚽','5 pts','Goleador'],['🏅','5 pts','Balón Oro']].map(([ic,p,l]) => (
-                <div key={l} style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:16 }}>{ic}</div>
-                  <div style={{ fontWeight:700, fontSize:13 }}>{p}</div>
-                  <div style={{ fontSize:10, color:'#2a4060' }}>{l}</div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -596,7 +514,6 @@ export default function Game() {
                 </button>
               </div>
             </div>
-
             <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16, marginBottom:14 }}>
               <div style={{ fontSize:13, color:'#2a7070', marginBottom:12 }}>Jugadores ({players.length})</div>
               {players.map(pl => (
@@ -620,7 +537,6 @@ export default function Game() {
                 </div>
               ))}
             </div>
-
             <button onClick={() => { localStorage.removeItem(`player_${code}`); nav('/') }}
               style={{ width:'100%', padding:12, background:'none', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, color:'#4a6080', cursor:'pointer', fontSize:14 }}>
               🚪 Salir del grupo
