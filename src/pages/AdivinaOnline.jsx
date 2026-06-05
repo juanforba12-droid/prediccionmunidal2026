@@ -2,7 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { getRandomJugador, checkAnswer } from '../lib/adivinaData.js'
-import { addPoints } from '../lib/userPoints.js'
+import { addPoints, getUserPoints } from '../lib/userPoints.js'
+import { getRankInfo } from '../lib/ranks.js'
+import XPWidget from './XPWidget.jsx'
 
 function generateCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -19,6 +21,10 @@ export default function AdivinaOnline() {
   const [session, setSession] = useState(null)
   const [myUid, setMyUid] = useState(null)
   const [esHost, setEsHost] = useState(false)
+  const [user, setUser] = useState(null)
+  const [totalXP, setTotalXP] = useState(0)
+  const [lastGained, setLastGained] = useState(0)
+  const [xpLoaded, setXpLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [sesionesGuardadas, setSesionesGuardadas] = useState([])
@@ -45,6 +51,13 @@ export default function AdivinaOnline() {
       myUidRef.current = uid
       const name = data.user?.user_metadata?.full_name || data.user?.email?.split('@')[0] || 'Jugador'
       setMyName(name)
+      const u = data.user ?? null
+      setUser(u)
+      if (u) {
+        getUserPoints(u.id).then(pts => { setTotalXP(pts); setXpLoaded(true) })
+      } else {
+        setXpLoaded(true)
+      }
     })
     setSesionesGuardadas(JSON.parse(localStorage.getItem('adivina_sesiones') || '[]'))
   }, [])
@@ -276,7 +289,12 @@ export default function AdivinaOnline() {
       // XP: leer uid fresco de auth para garantizar que es el uid real registrado
       const { data: authData } = await supabase.auth.getUser()
       const authUid = authData?.user?.id
-      if (authUid) addPoints(authUid, pts, 'adivina_online')
+      if (authUid) {
+        addPoints(authUid, pts, 'adivina_online')
+        setTotalXP(prev => prev + pts)
+        setLastGained(pts)
+        setTimeout(() => setLastGained(0), 2500)
+      }
     } else {
       setFeedback({ type: 'fail', text: `❌ "${inputAdivina}" no es correcto` })
       const jugadores = fresh.jugadores.map(j => j.id === myUid ? { ...j, eliminado: true } : j)
@@ -421,6 +439,11 @@ export default function AdivinaOnline() {
               </div>
               <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:28, color:'#63b3ed', lineHeight:1, textAlign:'center' }}>{j.puntos||0}</div>
               <div style={{ fontSize:9, color:'#2a4060', textAlign:'center' }}>pts</div>
+              {j.id===myUid && user && (
+                <div style={{ fontSize:9, color:'#fbbf24', textAlign:'center', marginTop:2 }}>
+                  {getRankInfo(totalXP).rank.emoji} {totalXP.toLocaleString()} XP
+                </div>
+              )}
               {j.eliminado && <div style={{ fontSize:9, color:'#f87171', textAlign:'center', marginTop:4 }}>❌ eliminado</div>}
               {votos[j.id] && !finRonda && <div style={{ fontSize:9, color:'#fbbf24', textAlign:'center', marginTop:4 }}>{votos[j.id]==='adivinar'?'🎯 adivina':'💡 pista'}</div>}
             </div>
@@ -544,6 +567,7 @@ export default function AdivinaOnline() {
         </div>
       </div>
     </div>
+    {xpLoaded && <XPWidget user={user} totalXP={totalXP} lastGained={lastGained} />}
   )
 
   return null
