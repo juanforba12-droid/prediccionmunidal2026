@@ -177,8 +177,10 @@ export default function TopDiezOnline() {
       jugadores[turnoActual].puntos = (jugadores[turnoActual].puntos || 0) + 1
       const historial = [...(session.historial || []), { jugador: jugadores[turnoActual].nombre, nombre: cat.top10[foundIdx].nombre, pos: foundIdx + 1 }]
       setFeedback({ type: 'ok', text: `✅ +1 para ${jugadores[turnoActual].nombre}` })
-      // XP solo para usuarios registrados (uid real, no anon_)
-      if (myUid && !myUid.startsWith('anon_')) addPoints(myUid, 10, 'topdiezgame_online')
+      // XP: leer uid fresco de auth para garantizar que es el uid real registrado
+      const { data: authData } = await supabase.auth.getUser()
+      const authUid = authData?.user?.id
+      if (authUid) addPoints(authUid, 10, 'topdiezgame_online')
 
       const allRevealed = revealed.every(Boolean)
       if (allRevealed) {
