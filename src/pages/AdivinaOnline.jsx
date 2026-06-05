@@ -104,8 +104,15 @@ export default function AdivinaOnline() {
   }, [session?.estado])
 
   useEffect(() => {
+    // Al cambiar jugador, siempre resetear
     setMiVoto(null)
   }, [session?.jugador_actual?.id])
+
+  useEffect(() => {
+    // Al avanzar pista, resetear solo si no estoy eliminado
+    const yoEliminado = session?.jugadores?.find(j => j.id === myUid)?.eliminado
+    if (!yoEliminado) setMiVoto(null)
+  }, [session?.pista_actual])
 
   useEffect(() => {
     clearInterval(timerRef.current)
