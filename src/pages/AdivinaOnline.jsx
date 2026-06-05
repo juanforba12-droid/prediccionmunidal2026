@@ -235,7 +235,8 @@ export default function AdivinaOnline() {
     setMiVoto(voto)
     const activos = fresh.jugadores.filter(j => !j.eliminado)
     const nuevosVotos = { ...(fresh.votos || {}), [myUid]: voto }
-    const todosVotaron = activos.every(j => nuevosVotos[j.id])
+    // todosVotaron: todos los activos votaron, O soy el único activo
+    const todosVotaron = activos.length <= 1 || activos.every(j => nuevosVotos[j.id])
     if (todosVotaron) {
       const quierenAdivinar = activos.filter(j => nuevosVotos[j.id] === 'adivinar')
       if (quierenAdivinar.length > 0) {
