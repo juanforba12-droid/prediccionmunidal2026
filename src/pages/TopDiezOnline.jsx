@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { checkAnswer, getRandomCat } from '../lib/topDiezData.js'
+import { addPoints } from '../lib/userPoints.js'
 
 function generateCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -176,6 +177,8 @@ export default function TopDiezOnline() {
       jugadores[turnoActual].puntos = (jugadores[turnoActual].puntos || 0) + 1
       const historial = [...(session.historial || []), { jugador: jugadores[turnoActual].nombre, nombre: cat.top10[foundIdx].nombre, pos: foundIdx + 1 }]
       setFeedback({ type: 'ok', text: `✅ +1 para ${jugadores[turnoActual].nombre}` })
+      // XP solo para usuarios registrados (uid real, no anon_)
+      if (myUid && !myUid.startsWith('anon_')) addPoints(myUid, 10, 'topdiezgame_online')
 
       const allRevealed = revealed.every(Boolean)
       if (allRevealed) {
