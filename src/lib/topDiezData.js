@@ -996,9 +996,9 @@ export function checkAnswer(input, item) {
   if (!inp || inp.length < 2) return false
   const full = normalize(item.nombre)
   if (inp === full) return true
-  const parts = full.split(' ')
+  const parts = full.split(' ').filter(p => p.length >= 2)
   for (const part of parts) {
-    if (part.length >= 3 && inp === part) return true
+    if (inp === part) return true
   }
   return false
 }
