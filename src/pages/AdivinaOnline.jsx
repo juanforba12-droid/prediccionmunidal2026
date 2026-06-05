@@ -566,8 +566,8 @@ export default function AdivinaOnline() {
           </div>
         </div>
       </div>
+      {xpLoaded && <XPWidget user={user} totalXP={totalXP} lastGained={lastGained} />}
     </div>
-    {xpLoaded && <XPWidget user={user} totalXP={totalXP} lastGained={lastGained} />}
   )
 
   return null
