@@ -2,7 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { checkAnswer, getRandomCat } from '../lib/topDiezData.js'
-import { addPoints } from '../lib/userPoints.js'
+import { addPoints, getUserPoints } from '../lib/userPoints.js'
+import { getRankInfo } from '../lib/ranks.js'
+import XPWidget from './XPWidget.jsx'
 
 function generateCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -22,6 +24,10 @@ export default function TopDiezOnline() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [sesionesGuardadas, setSesionesGuardadas] = useState([])
+  const [user, setUser] = useState(null)
+  const [totalXP, setTotalXP] = useState(0)
+  const [lastGained, setLastGained] = useState(0)
+  const [xpLoaded, setXpLoaded] = useState(false)
   const inputRef = useRef(null)
   const pollRef = useRef(null)
   const myUidRef = useRef(null)
@@ -41,6 +47,13 @@ export default function TopDiezOnline() {
       myUidRef.current = uid
       const name = data.user?.user_metadata?.full_name || data.user?.email?.split('@')[0] || 'Jugador'
       setMyName(name)
+      const u = data.user ?? null
+      setUser(u)
+      if (u) {
+        getUserPoints(u.id).then(pts => { setTotalXP(pts); setXpLoaded(true) })
+      } else {
+        setXpLoaded(true)
+      }
     })
     const saved = JSON.parse(localStorage.getItem('topdiezgame_sesiones') || '[]')
     setSesionesGuardadas(saved)
@@ -180,7 +193,12 @@ export default function TopDiezOnline() {
       // XP: leer uid fresco de auth para garantizar que es el uid real registrado
       const { data: authData } = await supabase.auth.getUser()
       const authUid = authData?.user?.id
-      if (authUid) addPoints(authUid, 10, 'topdiezgame_online')
+      if (authUid) {
+        addPoints(authUid, 10, 'topdiezgame_online')
+        setTotalXP(prev => prev + 10)
+        setLastGained(10)
+        setTimeout(() => setLastGained(0), 2500)
+      }
 
       const allRevealed = revealed.every(Boolean)
       if (allRevealed) {
@@ -388,6 +406,11 @@ export default function TopDiezOnline() {
                     {j.puntos||0}
                   </div>
                   <div style={{ fontSize:10, color:'#4a3a6a', textAlign:'center', marginTop:2 }}>pts</div>
+                  {j.id===myUid && user && (
+                    <div style={{ fontSize:9, color:'#fbbf24', textAlign:'center', marginTop:2 }}>
+                      {getRankInfo(totalXP).rank.emoji} {totalXP.toLocaleString()} XP
+                    </div>
+                  )}
                   {esTurno && !finRonda && (
                     <div style={{ marginTop:8, fontSize:10, color:'#fbbf24', textAlign:'center', fontWeight:700, background:'rgba(251,191,36,0.1)', borderRadius:6, padding:'3px 0' }}>
                       {j.id===myUid ? '👉 TU TURNO' : '⏳ SU TURNO'}
@@ -504,6 +527,7 @@ export default function TopDiezOnline() {
           </div>
         </div>
         <style>{`@media(max-width:640px){.sidebar-ranking{display:none!important}}`}</style>
+      {xpLoaded && <XPWidget user={user} totalXP={totalXP} lastGained={lastGained} />}
       </div>
     )
   }
