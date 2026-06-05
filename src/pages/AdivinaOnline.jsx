@@ -303,7 +303,7 @@ export default function AdivinaOnline() {
   }
 
   const rendirse = async () => {
-    await update({ revealed: Array(MAX_PISTAS).fill(true), estado_ronda: 'fin_ronda', pista_expires_at: null,
+    await update({ estado_ronda: 'fin_ronda', pista_expires_at: null,
       historial: [...(session.historial || []), { jugador: session.jugador_actual?.nombre, ganador: null, pts: 0 }]
     })
   }
