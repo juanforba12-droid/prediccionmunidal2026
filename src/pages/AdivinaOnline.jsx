@@ -276,9 +276,15 @@ export default function AdivinaOnline() {
         const historial = [...(fresh.historial || []), { jugador: jugador.nombre, ganador: null, pts: 0 }]
         await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial, pista_expires_at: null })
       } else if (todosIntentaron) {
-        // Avanzar pista: los que pidieron pista pueden votar de nuevo, los que fallaron siguen eliminados
-        const expires = Date.now() + TIMER_SECS * 1000
-        await update({ jugadores, intentos: {}, estado_ronda: 'votando', votos: {}, pista_expires_at: expires })
+        // Todos los que quisieron adivinar ya intentaron
+        // Los activos restantes son los que pidieron pista — avanzar directamente sin nueva votación
+        if (fresh.pista_actual >= MAX_PISTAS) {
+          const historial = [...(fresh.historial || []), { jugador: jugador.nombre, ganador: null, pts: 0 }]
+          await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial, pista_expires_at: null })
+        } else {
+          const expires = Date.now() + TIMER_SECS * 1000
+          await update({ jugadores, intentos: {}, pista_actual: fresh.pista_actual + 1, estado_ronda: 'votando', votos: {}, pista_expires_at: expires })
+        }
         setMiVoto(null)
       } else {
         await update({ jugadores, intentos: nuevosIntentos })
