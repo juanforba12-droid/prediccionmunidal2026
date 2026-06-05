@@ -2,13 +2,14 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { getRandomJugador, checkAnswer } from '../lib/adivinaData.js'
+import { addPoints } from '../lib/userPoints.js'
 
 function generateCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
 const MAX_PISTAS = 7
-const TIMER_SECS = 60
+const TIMER_SECS = 40
 
 export default function AdivinaOnline() {
   const nav = useNavigate()
@@ -268,6 +269,8 @@ export default function AdivinaOnline() {
       setFeedback({ type: 'ok', text: `✅ ¡Correcto! +${pts} pts` })
       const historial = [...(fresh.historial || []), { jugador: jugador.nombre, ganador: myName, pts }]
       await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial, pista_expires_at: null })
+      // XP solo para usuarios registrados (uid real, no anon_)
+      if (myUid && !myUid.startsWith('anon_')) addPoints(myUid, pts, 'adivina_online')
     } else {
       setFeedback({ type: 'fail', text: `❌ "${inputAdivina}" no es correcto` })
       const jugadores = fresh.jugadores.map(j => j.id === myUid ? { ...j, eliminado: true } : j)
@@ -378,7 +381,7 @@ export default function AdivinaOnline() {
             </div>
           ))}
         </div>
-        {session.creator_id === myUid ? (
+        {(session.creator_id === myUid || sesionesGuardadas.find(s => s.code === session.code)?.esHost) ? (
           <button onClick={iniciarPartida} disabled={(session.jugadores?.length || 0) < 2}
             style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:(session.jugadores?.length||0)<2?'rgba(255,255,255,0.08)':'linear-gradient(135deg,#63b3ed,#4299e1)', color:(session.jugadores?.length||0)<2?'#2a4060':'#0a0f1a', fontSize:15, fontWeight:900, cursor:(session.jugadores?.length||0)<2?'not-allowed':'pointer', marginBottom:10 }}>
             {(session.jugadores?.length||0) < 2 ? 'Esperando jugadores...' : '¡Empezar!'}
@@ -503,7 +506,7 @@ export default function AdivinaOnline() {
           )}
 
           {/* Rendirse */}
-          {!finRonda && session.creator_id === myUid && (
+          {!finRonda && (session.creator_id === myUid || sesionesGuardadas.find(s => s.code === session.code)?.esHost) && (
             <button onClick={rendirse} style={{ width:'100%', marginTop:8, padding:11, borderRadius:10, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.08)', color:'#f87171', fontSize:13, fontWeight:700, cursor:'pointer' }}>
               🏳️ Rendirse — mostrar respuesta
             </button>
@@ -520,7 +523,7 @@ export default function AdivinaOnline() {
                   <span style={{ fontWeight:900, color:'#fbbf24' }}>{j.puntos||0} pts</span>
                 </div>
               ))}
-              {session.creator_id === myUid ? (
+              {(session.creator_id === myUid || sesionesGuardadas.find(s => s.code === session.code)?.esHost) ? (
                 <button onClick={siguienteRonda} style={{ width:'100%', marginTop:16, padding:13, borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#0a0f1a', fontSize:15, fontWeight:900, cursor:'pointer' }}>
                   ⚽ Siguiente jugador
                 </button>
