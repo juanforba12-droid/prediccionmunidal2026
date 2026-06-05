@@ -106,8 +106,8 @@ export default function AdivinaOnline() {
   }, [session?.estado])
 
   useEffect(() => {
-    setMiVoto(null)
-  }, [session?.pista_actual, session?.jugador_actual?.id])
+    if (session?.estado_ronda === 'votando') setMiVoto(null)
+  }, [session?.pista_actual, session?.jugador_actual?.id, session?.estado_ronda])
 
   useEffect(() => {
     clearInterval(timerRef.current)
