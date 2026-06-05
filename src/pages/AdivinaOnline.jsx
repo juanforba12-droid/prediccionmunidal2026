@@ -227,12 +227,12 @@ export default function AdivinaOnline() {
   }
 
   const handleVoto = async (voto) => {
-    // Comprobar desde la sesión actual si ya voté (más fiable que estado local)
-    const yaVote = session?.votos?.[myUid]
-    if (yaVote) return
-    setMiVoto(voto)
+    // Leer estado fresco de BD para evitar desincronización con estado local
     const { data: fresh } = await supabase.from('adivina_sessions').select('*').eq('code', session.code).single()
     if (!fresh || fresh.estado_ronda !== 'votando') return
+    // Comprobar desde BD si ya voté
+    if (fresh.votos?.[myUid]) return
+    setMiVoto(voto)
     const activos = fresh.jugadores.filter(j => !j.eliminado)
     const nuevosVotos = { ...(fresh.votos || {}), [myUid]: voto }
     const todosVotaron = activos.every(j => nuevosVotos[j.id])
