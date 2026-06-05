@@ -23,11 +23,21 @@ export default function TopDiezOnline() {
   const [sesionesGuardadas, setSesionesGuardadas] = useState([])
   const inputRef = useRef(null)
   const pollRef = useRef(null)
+  const myUidRef = useRef(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      const uid = data.user?.id
+      let uid = data.user?.id
+      if (!uid) {
+        // Usuario no logueado — uid anónimo persistente en localStorage
+        uid = localStorage.getItem('anon_uid')
+        if (!uid) {
+          uid = 'anon_' + Math.random().toString(36).substring(2, 12)
+          localStorage.setItem('anon_uid', uid)
+        }
+      }
       setMyUid(uid)
+      myUidRef.current = uid
       const name = data.user?.user_metadata?.full_name || data.user?.email?.split('@')[0] || 'Jugador'
       setMyName(name)
     })
@@ -73,6 +83,7 @@ export default function TopDiezOnline() {
 
   const crearSesion = async () => {
     if (!myName.trim()) { setError('Pon tu nombre'); return }
+    if (!myUid) { setError('Cargando...'); return }
     setLoading(true); setError('')
     const code = generateCode()
     const cat = getRandomCat()
@@ -99,6 +110,7 @@ export default function TopDiezOnline() {
   const unirse = async () => {
     if (!myName.trim()) { setError('Pon tu nombre'); return }
     if (!codigoInput.trim()) { setError('Pon el código'); return }
+    if (!myUid) { setError('Cargando...'); return }
     setLoading(true); setError('')
     const code = codigoInput.toUpperCase()
     const { data: s } = await supabase.from('topdiezgame_sessions').select('*').eq('code', code).single()
@@ -187,14 +199,12 @@ export default function TopDiezOnline() {
   }
 
   const salir = () => {
-    // Solo vuelve al menú — la sesión sigue guardada para poder volver
     clearInterval(pollRef.current)
     setSession(null)
     setScreen('menu')
   }
 
   const abandonarSesion = async () => {
-    // Salir definitivamente de la sesión (eliminar jugador)
     if (session) {
       const jugadores = session.jugadores.filter(j => j.id !== myUid)
       if (jugadores.length === 0) {
@@ -224,11 +234,9 @@ export default function TopDiezOnline() {
     setLoading(true)
     const { data } = await supabase.from('topdiezgame_sessions').select('*').eq('code', s.code).single()
     if (!data) { setError('Sesión no encontrada, puede que haya sido eliminada'); quitarSesionLocal(s.code); setLoading(false); return }
-    // Asegurarse de que seguimos siendo parte de la sesión
     const jugadores = data.jugadores || []
     const yaEsta = jugadores.find(j => j.id === myUid)
     if (!yaEsta) {
-      // Nos añadimos de nuevo si la partida espera, si no error
       if (data.estado === 'esperando') {
         const nuevosJugadores = [...jugadores, { id: myUid, nombre: s.nombre, puntos: 0 }]
         await supabase.from('topdiezgame_sessions').update({ jugadores: nuevosJugadores }).eq('code', s.code)
@@ -258,7 +266,6 @@ export default function TopDiezOnline() {
           <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:36, color:'#fbbf24', letterSpacing:4 }}>TOP 10 ONLINE</div>
         </div>
 
-        {/* Sesiones guardadas */}
         {sesionesGuardadas.length > 0 && (
           <div style={{ marginBottom:20 }}>
             <div style={{ fontSize:11, color:'#4a3a6a', letterSpacing:2, marginBottom:10, textTransform:'uppercase' }}>Tus partidas</div>
@@ -342,10 +349,9 @@ export default function TopDiezOnline() {
           <div style={{ fontSize:11, color:'#6a5a8a' }}>Código: <span style={{ color:'#fbbf24', fontWeight:700 }}>{session.code}</span></div>
         </div>
 
-        {/* LAYOUT: sidebar izquierdo en desktop, arriba en móvil */}
         <div style={{ display:'flex', minHeight:'calc(100vh - 49px)' }}>
 
-          {/* SIDEBAR RANKING — fijo en desktop */}
+          {/* SIDEBAR */}
           <div style={{
             width: 220, flexShrink:0,
             padding:'20px 16px',
@@ -399,100 +405,99 @@ export default function TopDiezOnline() {
           {/* CONTENIDO PRINCIPAL */}
           <div style={{ flex:1, maxWidth:520, margin:'0 auto', padding:'16px 16px 0' }}>
 
-          {/* Turno — solo en móvil o si no hay sidebar */}
-          {!finRonda && (
-            <div style={{ textAlign:'center', marginBottom:12, padding:'8px 16px', background: esMi ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)', borderRadius:10, border:`1px solid ${esMi ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.07)'}` }}>
-              <div style={{ fontSize:13, fontWeight:700, color: esMi ? '#fbbf24' : '#8a7aaa' }}>
-                {esMi ? '👉 ¡Es tu turno!' : `⏳ Turno de ${jActual?.nombre}`}
-              </div>
-            </div>
-          )}
-
-          {/* Tabla top 10 */}
-          <div style={{ display:'flex', flexDirection:'column', gap:5, marginBottom:14 }}>
-            {cat.top10.map((item, i) => {
-              const isRev = revealed[i]
-              const isFinRev = finRonda && !revealed[i]
-              const quien = session.historial?.find(h => h.pos === i+1)
-              return (
-                <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px', borderRadius:10, background: isRev ? 'rgba(34,197,94,0.1)' : isFinRev ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)', border:`1px solid ${isRev ? 'rgba(34,197,94,0.25)' : isFinRev ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)'}`, transition:'all 0.3s' }}>
-                  <div style={{ width:24, height:24, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background: isRev ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.07)', fontSize:10, fontWeight:900, color: isRev ? '#22c55e' : '#6a5a8a' }}>{MEDALS[i]}</div>
-                  <div style={{ flex:1 }}>
-                    {isRev || isFinRev ? (
-                      <div style={{ fontSize:13, fontWeight:800, color: isRev ? '#86efac' : '#fca5a5' }}>
-                        {item.nombre} {quien && <span style={{ fontSize:10, color:'#fbbf24', fontWeight:400 }}>({quien.jugador})</span>}
-                      </div>
-                    ) : (
-                      <div style={{ height:11, borderRadius:3, background:'rgba(255,255,255,0.07)', width:`${45+Math.random()*40}%` }} />
-                    )}
-                    <div style={{ fontSize:10, color:'#6a5a8a', marginTop:1 }}>🏟️ {item.pista}</div>
-                  </div>
-                  {isRev && <div style={{ fontSize:14 }}>✅</div>}
-                  {isFinRev && <div style={{ fontSize:14 }}>❌</div>}
+            {!finRonda && (
+              <div style={{ textAlign:'center', marginBottom:12, padding:'8px 16px', background: esMi ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)', borderRadius:10, border:`1px solid ${esMi ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.07)'}` }}>
+                <div style={{ fontSize:13, fontWeight:700, color: esMi ? '#fbbf24' : '#8a7aaa' }}>
+                  {esMi ? '👉 ¡Es tu turno!' : `⏳ Turno de ${jActual?.nombre}`}
                 </div>
-              )
-            })}
-          </div>
-
-          {/* Feedback */}
-          <div style={{ height:32, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:8 }}>
-            {feedback && (
-              <div style={{ fontSize:13, fontWeight:700, color: feedback.type==='ok'?'#22c55e':'#ef4444', background:`${feedback.type==='ok'?'#22c55e':'#ef4444'}18`, padding:'4px 14px', borderRadius:20, border:`1px solid ${feedback.type==='ok'?'#22c55e':'#ef4444'}44` }}>
-                {feedback.text}
               </div>
             )}
-          </div>
 
-          {/* Input */}
-          {!finRonda && esMi && (
-            <div style={{ display:'flex', gap:8, marginBottom:10 }}>
-              <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key==='Enter' && handleSubmit()}
-                placeholder="Escribe un nombre..."
-                style={{ flex:1, padding:'12px 14px', borderRadius:12, border:'1px solid rgba(251,191,36,0.3)', background:'rgba(251,191,36,0.06)', color:'#e8e0f0', fontSize:14, outline:'none' }} />
-              <button onClick={handleSubmit} style={{ padding:'12px 16px', borderRadius:12, border:'none', background:'linear-gradient(135deg,#fbbf24,#f59e0b)', color:'#0a0a1a', fontSize:15, fontWeight:900, cursor:'pointer' }}>→</button>
+            {/* Tabla top 10 */}
+            <div style={{ display:'flex', flexDirection:'column', gap:5, marginBottom:14 }}>
+              {cat.top10.map((item, i) => {
+                const isRev = revealed[i]
+                const isFinRev = finRonda && !revealed[i]
+                const quien = session.historial?.find(h => h.pos === i+1)
+                return (
+                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px', borderRadius:10, background: isRev ? 'rgba(34,197,94,0.1)' : isFinRev ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)', border:`1px solid ${isRev ? 'rgba(34,197,94,0.25)' : isFinRev ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)'}`, transition:'all 0.3s' }}>
+                    <div style={{ width:24, height:24, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background: isRev ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.07)', fontSize:10, fontWeight:900, color: isRev ? '#22c55e' : '#6a5a8a' }}>{MEDALS[i]}</div>
+                    <div style={{ flex:1 }}>
+                      {isRev || isFinRev ? (
+                        <div style={{ fontSize:13, fontWeight:800, color: isRev ? '#86efac' : '#fca5a5' }}>
+                          {item.nombre} {quien && <span style={{ fontSize:10, color:'#fbbf24', fontWeight:400 }}>({quien.jugador})</span>}
+                        </div>
+                      ) : (
+                        <div style={{ height:11, borderRadius:3, background:'rgba(255,255,255,0.07)', width:`${45+(i*7)%40}%` }} />
+                      )}
+                      <div style={{ fontSize:10, color:'#6a5a8a', marginTop:1 }}>🏟️ {item.pista}</div>
+                    </div>
+                    {isRev && <div style={{ fontSize:14 }}>✅</div>}
+                    {isFinRev && <div style={{ fontSize:14 }}>❌</div>}
+                  </div>
+                )
+              })}
             </div>
-          )}
-          {!finRonda && !esMi && (
-            <div style={{ textAlign:'center', padding:'12px', background:'rgba(255,255,255,0.03)', borderRadius:10, marginBottom:10, fontSize:13, color:'#6a5a8a' }}>
-              Esperando a {jActual?.nombre}...
-            </div>
-          )}
 
-          {/* Rendirse — solo el host */}
-          {!finRonda && session.creator_id === myUid && (
-            <button onClick={rendirse} style={{ width:'100%', padding:11, borderRadius:10, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.08)', color:'#f87171', fontSize:13, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
-              🏳️ Rendirse — mostrar respuestas
-            </button>
-          )}
-
-          {/* Fin ronda */}
-          {finRonda && (
-            <div style={{ textAlign:'center', padding:16, background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.2)', borderRadius:14, marginBottom:12 }}>
-              <div style={{ fontSize:36, marginBottom:8 }}>🏆</div>
-              <div style={{ fontSize:20, fontWeight:900, color:'#fbbf24', marginBottom:12 }}>¡Ronda completada!</div>
-              {[...session.jugadores].sort((a,b) => (b.puntos||0)-(a.puntos||0)).map((j,i) => (
-                <div key={j.id} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.05)', fontSize:14, color: j.id===myUid ? '#fbbf24' : '#e8e0f0' }}>
-                  <span>{i===0?'🥇':i===1?'🥈':'🥉'} {j.nombre}</span>
-                  <span style={{ fontWeight:900 }}>{j.puntos||0} pts</span>
+            {/* Feedback */}
+            <div style={{ height:32, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:8 }}>
+              {feedback && (
+                <div style={{ fontSize:13, fontWeight:700, color: feedback.type==='ok'?'#22c55e':'#ef4444', background:`${feedback.type==='ok'?'#22c55e':'#ef4444'}18`, padding:'4px 14px', borderRadius:20, border:`1px solid ${feedback.type==='ok'?'#22c55e':'#ef4444'}44` }}>
+                  {feedback.text}
                 </div>
-              ))}
-              {session.creator_id === myUid && (
-                <button onClick={siguienteRonda} style={{ width:'100%', marginTop:16, padding:13, borderRadius:12, border:'none', background:'linear-gradient(135deg,#fbbf24,#f59e0b)', color:'#0a0a1a', fontSize:15, fontWeight:900, cursor:'pointer' }}>
-                  ⚽ Seguir jugando
-                </button>
               )}
-              {session.creator_id !== myUid && <div style={{ fontSize:13, color:'#6a5a8a', marginTop:12 }}>Esperando al host...</div>}
             </div>
-          )}
 
-          <button onClick={salir} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#6a5a8a', fontSize:13, cursor:'pointer', marginBottom:6 }}>
-            ← Salir al menú
-          </button>
-          <button onClick={abandonarSesion} style={{ width:'100%', padding:8, borderRadius:10, border:'1px solid rgba(239,68,68,0.15)', background:'none', color:'#f87171', fontSize:11, cursor:'pointer' }}>
-            Abandonar partida
-          </button>
-          </div>{/* fin contenido principal */}
-        </div>{/* fin layout flex */}
+            {/* Input */}
+            {!finRonda && esMi && (
+              <div style={{ display:'flex', gap:8, marginBottom:10 }}>
+                <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key==='Enter' && handleSubmit()}
+                  placeholder="Escribe un nombre..."
+                  style={{ flex:1, padding:'12px 14px', borderRadius:12, border:'1px solid rgba(251,191,36,0.3)', background:'rgba(251,191,36,0.06)', color:'#e8e0f0', fontSize:14, outline:'none' }} />
+                <button onClick={handleSubmit} style={{ padding:'12px 16px', borderRadius:12, border:'none', background:'linear-gradient(135deg,#fbbf24,#f59e0b)', color:'#0a0a1a', fontSize:15, fontWeight:900, cursor:'pointer' }}>→</button>
+              </div>
+            )}
+            {!finRonda && !esMi && (
+              <div style={{ textAlign:'center', padding:'12px', background:'rgba(255,255,255,0.03)', borderRadius:10, marginBottom:10, fontSize:13, color:'#6a5a8a' }}>
+                Esperando a {jActual?.nombre}...
+              </div>
+            )}
+
+            {/* Rendirse — solo el host */}
+            {!finRonda && session.creator_id === myUid && (
+              <button onClick={rendirse} style={{ width:'100%', padding:11, borderRadius:10, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.08)', color:'#f87171', fontSize:13, fontWeight:700, cursor:'pointer', marginBottom:8 }}>
+                🏳️ Rendirse — mostrar respuestas
+              </button>
+            )}
+
+            {/* Fin ronda */}
+            {finRonda && (
+              <div style={{ textAlign:'center', padding:16, background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.2)', borderRadius:14, marginBottom:12 }}>
+                <div style={{ fontSize:36, marginBottom:8 }}>🏆</div>
+                <div style={{ fontSize:20, fontWeight:900, color:'#fbbf24', marginBottom:12 }}>¡Ronda completada!</div>
+                {[...session.jugadores].sort((a,b) => (b.puntos||0)-(a.puntos||0)).map((j,i) => (
+                  <div key={j.id} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.05)', fontSize:14, color: j.id===myUid ? '#fbbf24' : '#e8e0f0' }}>
+                    <span>{i===0?'🥇':i===1?'🥈':'🥉'} {j.nombre}</span>
+                    <span style={{ fontWeight:900 }}>{j.puntos||0} pts</span>
+                  </div>
+                ))}
+                {session.creator_id === myUid && (
+                  <button onClick={siguienteRonda} style={{ width:'100%', marginTop:16, padding:13, borderRadius:12, border:'none', background:'linear-gradient(135deg,#fbbf24,#f59e0b)', color:'#0a0a1a', fontSize:15, fontWeight:900, cursor:'pointer' }}>
+                    ⚽ Seguir jugando
+                  </button>
+                )}
+                {session.creator_id !== myUid && <div style={{ fontSize:13, color:'#6a5a8a', marginTop:12 }}>Esperando al host...</div>}
+              </div>
+            )}
+
+            <button onClick={salir} style={{ width:'100%', padding:10, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', background:'none', color:'#6a5a8a', fontSize:13, cursor:'pointer', marginBottom:6 }}>
+              ← Salir al menú
+            </button>
+            <button onClick={abandonarSesion} style={{ width:'100%', padding:8, borderRadius:10, border:'1px solid rgba(239,68,68,0.15)', background:'none', color:'#f87171', fontSize:11, cursor:'pointer' }}>
+              Abandonar partida
+            </button>
+          </div>
+        </div>
         <style>{`@media(max-width:640px){.sidebar-ranking{display:none!important}}`}</style>
       </div>
     )
