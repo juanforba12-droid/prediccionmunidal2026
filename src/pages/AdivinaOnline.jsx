@@ -104,15 +104,10 @@ export default function AdivinaOnline() {
   }, [session?.estado])
 
   useEffect(() => {
-    // Al cambiar jugador, siempre resetear
-    setMiVoto(null)
-  }, [session?.jugador_actual?.id])
-
-  useEffect(() => {
-    // Al avanzar pista, resetear solo si no estoy eliminado
+    // Resetear miVoto cuando cambia jugador o pista, pero no si estoy eliminado
     const yoEliminado = session?.jugadores?.find(j => j.id === myUid)?.eliminado
     if (!yoEliminado) setMiVoto(null)
-  }, [session?.pista_actual])
+  }, [session?.pista_actual, session?.jugador_actual?.id])
 
   useEffect(() => {
     clearInterval(timerRef.current)
@@ -232,7 +227,9 @@ export default function AdivinaOnline() {
   }
 
   const handleVoto = async (voto) => {
-    if (miVoto) return
+    // Comprobar desde la sesión actual si ya voté (más fiable que estado local)
+    const yaVote = session?.votos?.[myUid]
+    if (yaVote) return
     setMiVoto(voto)
     const { data: fresh } = await supabase.from('adivina_sessions').select('*').eq('code', session.code).single()
     if (!fresh || fresh.estado_ronda !== 'votando') return
@@ -454,8 +451,8 @@ export default function AdivinaOnline() {
             </div>
           )}
 
-          {/* Acciones */}
-          {!finRonda && soyActivo && !estaAdivinando && !miVoto && (
+          {/* Acciones — usar votos de BD como fuente de verdad */}
+          {!finRonda && soyActivo && !estaAdivinando && !votos[myUid] && (
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               <button onClick={() => handleVoto('adivinar')} style={{ width:'100%', padding:14, borderRadius:12, border:'none', background:'linear-gradient(135deg,#63b3ed,#4299e1)', color:'#0a0f1a', fontSize:15, fontWeight:900, cursor:'pointer' }}>
                 🎯 Intentar adivinar — +{MAX_PISTAS - session.pista_actual + 1} pts
@@ -468,9 +465,9 @@ export default function AdivinaOnline() {
             </div>
           )}
 
-          {!finRonda && soyActivo && !estaAdivinando && miVoto && (
+          {!finRonda && soyActivo && !estaAdivinando && votos[myUid] && (
             <div style={{ textAlign:'center', padding:12, background:'rgba(99,179,237,0.08)', borderRadius:10, fontSize:13, color:'#63b3ed', fontWeight:700 }}>
-              {miVoto === 'adivinar' ? '🎯 Vas a adivinar' : '💡 Pediste más pista'} — esperando al resto...
+              {votos[myUid] === 'adivinar' ? '🎯 Vas a adivinar' : '💡 Pediste más pista'} — esperando al resto...
             </div>
           )}
 
