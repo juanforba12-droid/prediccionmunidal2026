@@ -527,7 +527,7 @@ export default function TopDiezOnline() {
           </div>
         </div>
         <style>{`@media(max-width:640px){.sidebar-ranking{display:none!important}}`}</style>
-      {xpLoaded && <XPWidget user={user} totalXP={totalXP} lastGained={lastGained} />}
+        {xpLoaded && <XPWidget user={user} totalXP={totalXP} lastGained={lastGained} />}
       </div>
     )
   }
