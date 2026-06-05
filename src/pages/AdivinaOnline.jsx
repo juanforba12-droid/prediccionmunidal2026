@@ -72,10 +72,12 @@ export default function AdivinaOnline() {
       await supabase.from('adivina_sessions').update({ estado_ronda: 'mostrar_respuesta', votos: votosCompletos, pista_expires_at: null }).eq('code', data.code)
     } else {
       const expires = Date.now() + TIMER_SECS * 1000
+      const jugadoresReset = data.jugadores.map(j => ({ ...j, eliminado: false }))
       await supabase.from('adivina_sessions').update({
         pista_actual: data.pista_actual + 1,
         estado_ronda: 'votando',
         votos: {},
+        jugadores: jugadoresReset,
         pista_expires_at: expires
       }).eq('code', data.code)
     }
@@ -269,7 +271,8 @@ export default function AdivinaOnline() {
         await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial, pista_expires_at: null })
       } else if (todosIntentaron) {
         const expires = Date.now() + TIMER_SECS * 1000
-        await update({ jugadores, intentos: {}, estado_ronda: 'votando', votos: {}, pista_expires_at: expires })
+        const jugadoresReset = jugadores.map(j => ({ ...j, eliminado: false }))
+        await update({ jugadores: jugadoresReset, intentos: {}, estado_ronda: 'votando', votos: {}, pista_expires_at: expires })
         setMiVoto(null)
       } else {
         await update({ jugadores, intentos: nuevosIntentos })
