@@ -235,8 +235,7 @@ export default function AdivinaOnline() {
     setMiVoto(voto)
     const activos = fresh.jugadores.filter(j => !j.eliminado)
     const nuevosVotos = { ...(fresh.votos || {}), [myUid]: voto }
-    // todosVotaron: todos los activos votaron, O soy el único activo
-    const todosVotaron = activos.length <= 1 || activos.every(j => nuevosVotos[j.id])
+    const todosVotaron = activos.every(j => nuevosVotos[j.id])
     if (todosVotaron) {
       const quierenAdivinar = activos.filter(j => nuevosVotos[j.id] === 'adivinar')
       if (quierenAdivinar.length > 0) {
@@ -254,27 +253,31 @@ export default function AdivinaOnline() {
 
   const handleIntento = async () => {
     if (!inputAdivina.trim() || !session) return
-    const jugador = session.jugador_actual
-    const nuevosIntentos = { ...(session.intentos || {}), [myUid]: inputAdivina.trim() }
-    const quierenAdivinar = session.jugadores.filter(j => !j.eliminado && (session.votos || {})[j.id] === 'adivinar')
+    // Leer estado fresco de BD para evitar desincronización
+    const { data: fresh } = await supabase.from('adivina_sessions').select('*').eq('code', session.code).single()
+    if (!fresh) return
+    const jugador = fresh.jugador_actual
+    const nuevosIntentos = { ...(fresh.intentos || {}), [myUid]: inputAdivina.trim() }
+    // quierenAdivinar = activos que votaron 'adivinar' en esta fase (fuente de verdad: BD)
+    const quierenAdivinar = fresh.jugadores.filter(j => !j.eliminado && (fresh.votos || {})[j.id] === 'adivinar')
     const todosIntentaron = quierenAdivinar.every(j => nuevosIntentos[j.id])
 
     if (checkAnswer(inputAdivina, jugador)) {
-      const pts = MAX_PISTAS - session.pista_actual + 1
-      const jugadores = session.jugadores.map(j => j.id === myUid ? { ...j, puntos: (j.puntos || 0) + pts } : j)
+      const pts = MAX_PISTAS - fresh.pista_actual + 1
+      const jugadores = fresh.jugadores.map(j => j.id === myUid ? { ...j, puntos: (j.puntos || 0) + pts } : j)
       setFeedback({ type: 'ok', text: `✅ ¡Correcto! +${pts} pts` })
-      const historial = [...(session.historial || []), { jugador: jugador.nombre, ganador: myName, pts }]
+      const historial = [...(fresh.historial || []), { jugador: jugador.nombre, ganador: myName, pts }]
       await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial, pista_expires_at: null })
     } else {
       setFeedback({ type: 'fail', text: `❌ "${inputAdivina}" no es correcto` })
-      const jugadores = session.jugadores.map(j => j.id === myUid ? { ...j, eliminado: true } : j)
+      const jugadores = fresh.jugadores.map(j => j.id === myUid ? { ...j, eliminado: true } : j)
       const activosRestantes = jugadores.filter(j => !j.eliminado)
       if (activosRestantes.length === 0) {
-        const historial = [...(session.historial || []), { jugador: jugador.nombre, ganador: null, pts: 0 }]
+        const historial = [...(fresh.historial || []), { jugador: jugador.nombre, ganador: null, pts: 0 }]
         await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial, pista_expires_at: null })
       } else if (todosIntentaron) {
+        // Avanzar pista: los que pidieron pista pueden votar de nuevo, los que fallaron siguen eliminados
         const expires = Date.now() + TIMER_SECS * 1000
-        // No resetear eliminado: quien falló el intento sigue eliminado, quien pidió pista nunca lo estuvo
         await update({ jugadores, intentos: {}, estado_ronda: 'votando', votos: {}, pista_expires_at: expires })
         setMiVoto(null)
       } else {
