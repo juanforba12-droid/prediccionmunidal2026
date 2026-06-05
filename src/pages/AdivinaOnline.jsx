@@ -30,10 +30,19 @@ export default function AdivinaOnline() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      const uid = data.user?.id
+      let uid = data.user?.id
+      if (!uid) {
+        // Usuario no logueado — uid anónimo persistente en localStorage
+        uid = localStorage.getItem('anon_uid')
+        if (!uid) {
+          uid = 'anon_' + Math.random().toString(36).substring(2, 12)
+          localStorage.setItem('anon_uid', uid)
+        }
+      }
       setMyUid(uid)
       myUidRef.current = uid
-      setMyName(data.user?.user_metadata?.full_name || data.user?.email?.split('@')[0] || 'Jugador')
+      const name = data.user?.user_metadata?.full_name || data.user?.email?.split('@')[0] || 'Jugador'
+      setMyName(name)
     })
     setSesionesGuardadas(JSON.parse(localStorage.getItem('adivina_sesiones') || '[]'))
   }, [])
@@ -45,23 +54,22 @@ export default function AdivinaOnline() {
     }
   }, [feedback])
 
-  // ── POLLING: carga sesión y comprueba si el timer expiró ──
   const procesarExpiracion = useCallback(async (data) => {
     if (!data) return
     if (data.estado !== 'jugando') return
     if (data.estado_ronda !== 'votando') return
+    if (data.estado_ronda === 'fin_ronda') return
+    if (data.estado_ronda === 'mostrar_respuesta') return
     if (!data.pista_expires_at) return
     if (Date.now() < data.pista_expires_at) return
-    // El tiempo expiró — rellenar votos pendientes con 'pista'
     const activos = data.jugadores.filter(j => !j.eliminado)
     const votosCompletos = { ...(data.votos || {}) }
     activos.forEach(j => { if (!votosCompletos[j.id]) votosCompletos[j.id] = 'pista' })
-    // Si alguno quería adivinar, darles la oportunidad antes de avanzar
     const quierenAdivinar = activos.filter(j => votosCompletos[j.id] === 'adivinar')
     if (quierenAdivinar.length > 0) {
       await supabase.from('adivina_sessions').update({ votos: votosCompletos, estado_ronda: 'adivinando', intentos: {} }).eq('code', data.code)
     } else if (data.pista_actual >= MAX_PISTAS) {
-      await supabase.from('adivina_sessions').update({ estado_ronda: 'mostrar_respuesta', votos: votosCompletos }).eq('code', data.code)
+      await supabase.from('adivina_sessions').update({ estado_ronda: 'mostrar_respuesta', votos: votosCompletos, pista_expires_at: null }).eq('code', data.code)
     } else {
       const expires = Date.now() + TIMER_SECS * 1000
       await supabase.from('adivina_sessions').update({
@@ -95,12 +103,10 @@ export default function AdivinaOnline() {
     if (screen === 'sala' && session?.estado === 'jugando') setScreen('jugando')
   }, [session?.estado])
 
-  // Resetear miVoto cuando cambia la pista o jugador
   useEffect(() => {
     setMiVoto(null)
   }, [session?.pista_actual, session?.jugador_actual?.id])
 
-  // Timer visual — solo display, calcula desde pista_expires_at
   useEffect(() => {
     clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
@@ -134,6 +140,7 @@ export default function AdivinaOnline() {
 
   const crearSesion = async () => {
     if (!myName.trim()) { setError('Pon tu nombre'); return }
+    if (!myUid) { setError('Cargando...'); return }
     setLoading(true); setError('')
     const code = generateCode()
     const jugador = getRandomJugador()
@@ -158,6 +165,7 @@ export default function AdivinaOnline() {
   const unirse = async () => {
     if (!myName.trim()) { setError('Pon tu nombre'); return }
     if (!codigoInput.trim()) { setError('Pon el código'); return }
+    if (!myUid) { setError('Cargando...'); return }
     setLoading(true); setError('')
     const code = codigoInput.toUpperCase()
     const { data: s } = await supabase.from('adivina_sessions').select('*').eq('code', code).single()
@@ -219,7 +227,6 @@ export default function AdivinaOnline() {
   const handleVoto = async (voto) => {
     if (miVoto) return
     setMiVoto(voto)
-    // Leer estado fresco antes de procesar
     const { data: fresh } = await supabase.from('adivina_sessions').select('*').eq('code', session.code).single()
     if (!fresh || fresh.estado_ronda !== 'votando') return
     const activos = fresh.jugadores.filter(j => !j.eliminado)
@@ -230,7 +237,7 @@ export default function AdivinaOnline() {
       if (quierenAdivinar.length > 0) {
         await supabase.from('adivina_sessions').update({ votos: nuevosVotos, estado_ronda: 'adivinando', intentos: {} }).eq('code', session.code)
       } else if (fresh.pista_actual >= MAX_PISTAS) {
-        await supabase.from('adivina_sessions').update({ votos: nuevosVotos, estado_ronda: 'mostrar_respuesta' }).eq('code', session.code)
+        await supabase.from('adivina_sessions').update({ votos: nuevosVotos, estado_ronda: 'mostrar_respuesta', pista_expires_at: null }).eq('code', session.code)
       } else {
         const expires = Date.now() + TIMER_SECS * 1000
         await supabase.from('adivina_sessions').update({ pista_actual: fresh.pista_actual + 1, estado_ronda: 'votando', votos: {}, pista_expires_at: expires }).eq('code', session.code)
@@ -252,14 +259,14 @@ export default function AdivinaOnline() {
       const jugadores = session.jugadores.map(j => j.id === myUid ? { ...j, puntos: (j.puntos || 0) + pts } : j)
       setFeedback({ type: 'ok', text: `✅ ¡Correcto! +${pts} pts` })
       const historial = [...(session.historial || []), { jugador: jugador.nombre, ganador: myName, pts }]
-      await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial })
+      await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial, pista_expires_at: null })
     } else {
       setFeedback({ type: 'fail', text: `❌ "${inputAdivina}" no es correcto` })
       const jugadores = session.jugadores.map(j => j.id === myUid ? { ...j, eliminado: true } : j)
       const activosRestantes = jugadores.filter(j => !j.eliminado)
       if (activosRestantes.length === 0) {
         const historial = [...(session.historial || []), { jugador: jugador.nombre, ganador: null, pts: 0 }]
-        await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial })
+        await update({ jugadores, intentos: nuevosIntentos, estado_ronda: 'fin_ronda', historial, pista_expires_at: null })
       } else if (todosIntentaron) {
         const expires = Date.now() + TIMER_SECS * 1000
         await update({ jugadores, intentos: {}, estado_ronda: 'votando', votos: {}, pista_expires_at: expires })
@@ -272,7 +279,7 @@ export default function AdivinaOnline() {
   }
 
   const rendirse = async () => {
-    await update({ revealed: Array(MAX_PISTAS).fill(true), estado_ronda: 'fin_ronda',
+    await update({ revealed: Array(MAX_PISTAS).fill(true), estado_ronda: 'fin_ronda', pista_expires_at: null,
       historial: [...(session.historial || []), { jugador: session.jugador_actual?.nombre, ganador: null, pts: 0 }]
     })
   }
@@ -280,7 +287,7 @@ export default function AdivinaOnline() {
   const siguienteRonda = async () => {
     if (!session) return
     const jugadores = session.jugadores.map(j => ({ ...j, eliminado: false }))
-    const nuevoJugador = getRandomJugador(session.historial?.map(h => session.jugador_actual?.id) || [])
+    const nuevoJugador = getRandomJugador(session.historial?.map(h => h.jugador) || [])
     const expires = Date.now() + TIMER_SECS * 1000
     await update({ jugadores, jugador_actual: nuevoJugador, pista_actual: 1, votos: {}, intentos: {}, estado_ronda: 'votando', estado: 'jugando', pista_expires_at: expires })
     setMiVoto(null)
