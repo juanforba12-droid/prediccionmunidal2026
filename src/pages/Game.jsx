@@ -45,8 +45,8 @@ export default function Game() {
     loadAll()
   }, [code])
 
-  const loadAll = useCallback(async () => {
-    setLoading(true)
+  const loadAll = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const [grpRes, plRes, predsRes, realesRes] = await Promise.all([
         supabase.from('groups').select('*').eq('code', code).single(),
@@ -94,7 +94,7 @@ export default function Game() {
 
   useEffect(() => {
     // Polling cada 5s en lugar de realtime para soportar muchos usuarios simultáneos
-    const interval = setInterval(() => loadAll(), 5000)
+    const interval = setInterval(() => loadAll(true), 5000)
     return () => clearInterval(interval)
   }, [code, loadAll])
 
@@ -589,42 +589,41 @@ export default function Game() {
                 <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:4 }}>🎯 8 mejores terceros · 1 pt c/u</div>
                 <div style={{ fontSize:11, color:'#2a4060', marginBottom:12 }}>
                   {!locked&&<span style={{ color:predTerc.length===8?'#2a9d8f':'#f4a261' }}>{predTerc.length}/8 seleccionados — </span>}
-                  Toca para seleccionar
+                  Se calculan automáticamente por pts · GD · GF
                 </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                  {Object.entries(GRUPOS).map(([grp])=>{
-                    const eq=tercerosPorGrupo[grp]
-                    const isSel=predTerc.includes(eq),isReal=realTerc.includes(eq),isHit=isSel&&isReal
-                    return (
-                      <div key={grp} onClick={()=>toggleTercero(eq)}
-                        style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, border:`1px solid ${isHit?'rgba(42,157,143,0.4)':isSel?`${mc}44`:'rgba(255,255,255,0.07)'}`, background:isHit?'rgba(42,157,143,0.08)':isSel?`${mc}10`:'rgba(255,255,255,0.02)', cursor:locked?'default':'pointer', opacity:(!locked&&predTerc.length>=8&&!isSel)?0.4:1 }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:'#2a4060', width:22 }}>G{grp}</div>
-                        <div style={{ flex:1, fontSize:13, fontWeight:isSel?700:400, color:isHit?'#2a9d8f':isSel?mc:'#8a9ab0' }}>{eq}</div>
-                        <div style={{ fontSize:10, color:'#2a4060' }}>3º actual</div>
-                        {isSel&&<div style={{ width:20, height:20, borderRadius:'50%', background:isHit?'#2a9d8f':mc, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, color:'#fff', fontWeight:700 }}>{isHit?'⭐':'✓'}</div>}
-                      </div>
-                    )
-                  })}
-                </div>
-                {isCreator&&(
-                  <div style={{ marginTop:14, paddingTop:14, borderTop:'1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ fontSize:12, color:'#ffd700', fontWeight:700, marginBottom:8 }}>👑 Admin — Marcar los 8 terceros reales</div>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                      {Object.entries(tercerosPorGrupo).map(([grp,eq])=>{
-                        const isMarked=realTerc.includes(eq)
+                {(() => {
+                  // Calcular los 8 mejores terceros automáticamente
+                  const terceros = Object.entries(tercerosPorGrupo).map(([grp, eq]) => {
+                    const st = standings[grp]
+                    const t = st ? [...st].sort((a,b)=>b.pts-a.pts||(b.gf-b.gc)-(a.gf-a.gc)||b.gf-a.gf)[2] : null
+                    return { grp, eq, pts: t?.pts||0, gd: (t?.gf||0)-(t?.gc||0), gf: t?.gf||0 }
+                  })
+                  const mejoresTerc = [...terceros].sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf).slice(0,8).map(t=>t.eq)
+                  // Actualizar automáticamente en Supabase si hay resultados y es creator
+                  if (isCreator && Object.values(reales).some(r=>r.l!==''&&r.l!=null)) {
+                    const realTercActual = realClas.mejores_terceros || []
+                    if (JSON.stringify([...mejoresTerc].sort()) !== JSON.stringify([...realTercActual].sort())) {
+                      saveExtrasReal({...realClas, mejores_terceros: mejoresTerc})
+                    }
+                  }
+                  return (
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      {terceros.sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf).map(({grp,eq,pts,gd,gf},idx)=>{
+                        const isSel=predTerc.includes(eq),isReal=mejoresTerc.includes(eq),isHit=isSel&&isReal
+                        const top8=idx<8
                         return (
-                          <button key={grp} onClick={()=>{
-                            const next=isMarked?realTerc.filter(e=>e!==eq):realTerc.length<8?[...realTerc,eq]:realTerc
-                            saveExtrasReal({...realClas,mejores_terceros:next})
-                          }} style={{ padding:'5px 10px', borderRadius:20, border:`1px solid ${isMarked?'rgba(42,157,143,0.5)':'rgba(255,255,255,0.1)'}`, background:isMarked?'rgba(42,157,143,0.15)':'rgba(255,255,255,0.04)', color:isMarked?'#2a9d8f':'#4a6080', fontSize:11, cursor:'pointer', fontWeight:isMarked?700:400 }}>
-                            {isMarked?'✓ ':''}{eq}
-                          </button>
+                          <div key={grp} onClick={()=>toggleTercero(eq)}
+                            style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, border:`1px solid ${isHit?'rgba(42,157,143,0.4)':isReal?'rgba(255,215,0,0.3)':isSel?`${mc}44`:'rgba(255,255,255,0.07)'}`, background:isHit?'rgba(42,157,143,0.08)':isReal?'rgba(255,215,0,0.04)':isSel?`${mc}10`:'rgba(255,255,255,0.02)', cursor:locked?'default':'pointer', opacity:(!locked&&predTerc.length>=8&&!isSel)?0.4:1 }}>
+                            <div style={{ fontSize:11, fontWeight:700, color:top8?'#ffd700':'#2a4060', width:22 }}>{idx<8?`${idx+1}º`:'–'}</div>
+                            <div style={{ flex:1, fontSize:13, fontWeight:isSel?700:400, color:isHit?'#2a9d8f':isReal?'#ffd700':isSel?mc:'#8a9ab0' }}>{eq} <span style={{fontSize:10,color:'#2a4060'}}>(G{grp})</span></div>
+                            <div style={{ fontSize:10, color:'#2a4060' }}>{pts}pts GD{gd>0?'+':''}{gd}</div>
+                            {isSel&&<div style={{ width:20, height:20, borderRadius:'50%', background:isHit?'#2a9d8f':mc, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, color:'#fff', fontWeight:700 }}>{isHit?'⭐':'✓'}</div>}
+                          </div>
                         )
                       })}
                     </div>
-                    <div style={{ fontSize:10, color:'#2a4060', marginTop:6 }}>{realTerc.length}/8 marcados</div>
-                  </div>
-                )}
+                  )
+                })()}
               </div>
             </div>
           )
