@@ -489,7 +489,7 @@ export default function Game() {
               const localReal = resolverEquipo(m.local)
               const visReal   = resolverEquipo(m.vis)
               // equiposReales: solo si ambos son equipos reales (no placeholders)
-              const esPlaceholder = (e) => !e || e==='3?' || /^[GCS]\d/.test(e) || e.includes('Ganador') || e.includes('Perdedor')
+              const esPlaceholder = (e) => !e || e==='3?' || new RegExp('^[GCS]\\d').test(e) || e.includes('Ganador') || e.includes('Perdedor')
               const equiposReales = (!esPlaceholder(localReal) && !esPlaceholder(visReal))
                 ? [localReal, visReal]
                 : []
@@ -848,7 +848,7 @@ export default function Game() {
                       const localR = resolverEquipo(m.local)
                       const visR   = resolverEquipo(m.vis)
                       const realEq = realClasif[m.id] || ''
-                      const esPlaceholder = (e) => !e || e==='3?' || /^[GCS]\d/.test(e) || e.includes('Ganador') || e.includes('Perdedor')
+                      const esPlaceholder = (e) => !e || e==='3?' || new RegExp('^[GCS]\\d').test(e) || e.includes('Ganador') || e.includes('Perdedor')
                       const tieneEquipos = !esPlaceholder(localR) && !esPlaceholder(visR)
                       return (
                         <div key={m.id} style={{ padding:'8px 12px', background:'rgba(255,255,255,0.03)', borderRadius:8 }}>
