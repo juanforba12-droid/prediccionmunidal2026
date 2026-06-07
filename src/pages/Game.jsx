@@ -33,7 +33,18 @@ export default function Game() {
   const [jornada, setJornada] = useState('J1')
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [globalRanking, setGlobalRanking] = useState([])
+  const [loadingGlobal, setLoadingGlobal] = useState(false)
 
+  const ADMIN_UIDS = ['2f506ea7-bb8a-4e5e-bf90-2816fcd73fe1']
+  const myAuthId = (() => {
+    try {
+      const token = localStorage.getItem('sb-flawyripybuhifswlipm-auth-token')
+      if (token) { const p = JSON.parse(token); if (p?.user?.id) return p.user.id }
+    } catch(e) {}
+    return null
+  })()
+  const isSuperAdmin = ADMIN_UIDS.includes(myAuthId)
   const isCreator = group && myPlayer && group.creator_id === myPlayer.id
   const shareUrl  = `${window.location.origin}/unirse/${code}`
   const locked    = isGloballyLocked()
@@ -221,6 +232,52 @@ export default function Game() {
     navigator.clipboard?.writeText(shareUrl).catch(()=>{})
     setCopied(true); setTimeout(() => setCopied(false), 2500)
   }
+  const cargarGlobalRanking = async () => {
+    if (loadingGlobal) return
+    setLoadingGlobal(true)
+    try {
+      // Traer todas las predicciones y resultados de todos los grupos
+      const [predsRes, realesRes, playersRes] = await Promise.all([
+        supabase.from('predictions').select('player_id, match_id, goals_local, goals_vis, group_code'),
+        supabase.from('results').select('match_id, goals_local, goals_vis, group_code'),
+        supabase.from('players').select('id, name, avatar, color, group_code, extras_pred'),
+      ])
+      if (!predsRes.data || !realesRes.data || !playersRes.data) return
+
+      // Mapear resultados por group_code+match_id
+      const realesMap = {}
+      realesRes.data.forEach(r => {
+        if (!realesMap[r.group_code]) realesMap[r.group_code] = {}
+        realesMap[r.group_code][r.match_id] = { l: r.goals_local ?? '', v: r.goals_vis ?? '' }
+      })
+
+      // Mapear predicciones por player_id
+      const predsMap = {}
+      predsRes.data.forEach(p => {
+        if (!predsMap[p.player_id]) predsMap[p.player_id] = {}
+        predsMap[p.player_id][p.match_id] = { l: p.goals_local ?? '', v: p.goals_vis ?? '' }
+      })
+
+      // Calcular puntos por jugador
+      const ranked = playersRes.data.map(pl => {
+        const pp = predsMap[pl.id] || {}
+        const rr = realesMap[pl.group_code] || {}
+        let pts = 0, exact = 0, result = 0
+        PARTIDOS_GRUPOS.forEach(m => {
+          const pr = pp[m.id] || {}
+          const re = rr[m.id] || {}
+          const p = calcPts(pr.l ?? '', pr.v ?? '', re.l ?? '', re.v ?? '')
+          if (p === 5) { pts += 5; exact++ }
+          else if (p === 1) { pts += 1; result++ }
+        })
+        return { ...pl, pts, exact, result }
+      }).sort((a,b) => b.pts-a.pts || b.exact-a.exact)
+
+      setGlobalRanking(ranked)
+    } catch(e) { console.error(e) }
+    setLoadingGlobal(false)
+  }
+
   const kickPlayer = async (playerId) => {
     if (!isCreator) return
     if (!window.confirm('¿Seguro?')) return
@@ -368,9 +425,9 @@ export default function Game() {
 
         {/* MAIN TABS */}
         <div style={{ display:'flex', gap:4, marginBottom:14, overflowX:'auto' }}>
-          {[['quiniela','📝'],['extras','🎯'],['ranking','🏅'],['tabla','📊'],['grupo','👥']].map(([k,l]) => (
-            <button key={k} onClick={() => setTab(k)} style={{ flex:1, padding:'10px 4px', borderRadius:10, border:'none', cursor:'pointer', fontWeight:700, fontSize:11, background:tab===k?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.04)', color:tab===k?'#e8eaf0':'#2a4060', borderBottom:tab===k?`3px solid ${mc}`:'3px solid transparent', whiteSpace:'nowrap' }}>
-              {l} {k.charAt(0).toUpperCase()+k.slice(1)}
+          {[['quiniela','📝'],['extras','🎯'],['ranking','🏅'],['global','🌍'],['tabla','📊'],['grupo','👥'],...(isSuperAdmin?[['admin','🔧']]:[])].map(([k,l]) => (
+            <button key={k} onClick={() => { setTab(k); if(k==='global') cargarGlobalRanking() }} style={{ flex:1, padding:'10px 4px', borderRadius:10, border:'none', cursor:'pointer', fontWeight:700, fontSize:11, background:tab===k?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.04)', color:tab===k?'#e8eaf0':'#2a4060', borderBottom:tab===k?`3px solid ${mc}`:'3px solid transparent', whiteSpace:'nowrap' }}>
+              {l} {k==='admin'?'Admin':k.charAt(0).toUpperCase()+k.slice(1)}
             </button>
           ))}
         </div>
@@ -715,6 +772,113 @@ export default function Game() {
           </div>
         )}
       </div>
+
+        {/* ═══════════════ GLOBAL ═══════════════ */}
+        {tab === 'global' && (
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ textAlign:'center', fontSize:11, color:'#2a4060', marginBottom:8 }}>Ranking global — todos los grupos</div>
+            {loadingGlobal ? (
+              <div style={{ textAlign:'center', color:'#2a4060', padding:'2rem' }}>Cargando...</div>
+            ) : globalRanking.length === 0 ? (
+              <div style={{ textAlign:'center', color:'#2a4060', padding:'2rem' }}>Sin datos todavía</div>
+            ) : globalRanking.map((pl, idx) => {
+              const isMe = pl.id === myPlayer?.id
+              const medal = ['🥇','🥈','🥉'][idx] || `${idx+1}º`
+              return (
+                <div key={pl.id} style={{ background:isMe?`${pl.color}18`:'rgba(255,255,255,0.04)', border:`1px solid ${isMe?pl.color+'44':'rgba(255,255,255,0.07)'}`, borderRadius:14, padding:'12px 16px', display:'flex', alignItems:'center', gap:12 }}>
+                  <div style={{ fontSize:20, width:30, textAlign:'center' }}>{medal}</div>
+                  <div style={{ fontSize:22, width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', background:`${pl.color}22`, borderRadius:8 }}>{pl.avatar}</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontWeight:700, fontSize:14, color:isMe?pl.color:'#c8d8ea' }}>{pl.name}{isMe?' (tú)':''}</div>
+                    <div style={{ fontSize:10, color:'#2a4060', marginTop:2 }}>⭐ {pl.exact} exactos · ✓ {pl.result} resultados</div>
+                  </div>
+                  <div style={{ textAlign:'right' }}>
+                    <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:30, color:pl.color, lineHeight:1 }}>{pl.pts}</div>
+                    <div style={{ fontSize:10, color:'#2a4060' }}>pts</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* ═══════════════ ADMIN ═══════════════ */}
+        {tab === 'admin' && isSuperAdmin && (
+          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+            <div style={{ background:'rgba(255,215,0,0.06)', border:'1px solid rgba(255,215,0,0.2)', borderRadius:12, padding:'12px 16px', fontSize:12, color:'#ffd700' }}>
+              👑 Panel de administrador — Solo visible para ti
+            </div>
+
+            {/* Resultados fase de grupos */}
+            <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16 }}>
+              <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:14 }}>⚽ Introducir resultados — Grupos</div>
+              {['J1','J2','J3'].map(jor => (
+                <div key={jor} style={{ marginBottom:16 }}>
+                  <div style={{ fontSize:12, color:'#2a4060', fontWeight:700, marginBottom:8, letterSpacing:2 }}>{jor === 'J1' ? 'JORNADA 1' : jor === 'J2' ? 'JORNADA 2' : 'JORNADA 3'}</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {PARTIDOS_GRUPOS.filter(m => m.jornada === jor).map(m => {
+                      const rl = reales[m.id]?.l ?? '', rv = reales[m.id]?.v ?? ''
+                      return (
+                        <div key={m.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:'rgba(255,255,255,0.03)', borderRadius:8 }}>
+                          <span style={{ flex:1, fontSize:12, textAlign:'right', color:'#c8d8ea' }}>{m.local}</span>
+                          <input type="text" inputMode="numeric" maxLength={2} value={rl}
+                            onChange={e => saveReal(m.id,'l',e.target.value)}
+                            style={{ width:34, height:30, textAlign:'center', fontSize:14, fontWeight:700, borderRadius:6, border:'1.5px solid rgba(42,157,143,.4)', background:'rgba(42,157,143,.12)', color:'#2a9d8f', outline:'none' }} />
+                          <span style={{ color:'#2a9d8f', fontWeight:900 }}>:</span>
+                          <input type="text" inputMode="numeric" maxLength={2} value={rv}
+                            onChange={e => saveReal(m.id,'v',e.target.value)}
+                            style={{ width:34, height:30, textAlign:'center', fontSize:14, fontWeight:700, borderRadius:6, border:'1.5px solid rgba(42,157,143,.4)', background:'rgba(42,157,143,.12)', color:'#2a9d8f', outline:'none' }} />
+                          <span style={{ flex:1, fontSize:12, color:'#c8d8ea' }}>{m.vis}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Quién pasa en eliminatorias */}
+            <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16 }}>
+              <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:14 }}>⚔️ Quién pasa — Eliminatorias</div>
+              {['dieciseisavos','octavos','cuartos','semis','final'].map(fase => (
+                <div key={fase} style={{ marginBottom:14 }}>
+                  <div style={{ fontSize:12, color:'#2a4060', fontWeight:700, marginBottom:8, letterSpacing:2, textTransform:'uppercase' }}>{fase}</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {PARTIDOS_ELIMINATORIAS.filter(m => m.fase === fase && !m.tercero).map(m => {
+                      const localR = resolverEquipo(m.local)
+                      const visR   = resolverEquipo(m.vis)
+                      const realEq = realClasif[m.id] || ''
+                      const esPlaceholder = (e) => !e || e==='3?' || /^[GCS]\d/.test(e) || e.includes('Ganador') || e.includes('Perdedor')
+                      const tieneEquipos = !esPlaceholder(localR) && !esPlaceholder(visR)
+                      return (
+                        <div key={m.id} style={{ padding:'8px 12px', background:'rgba(255,255,255,0.03)', borderRadius:8 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom: tieneEquipos ? 6 : 0 }}>
+                            <span style={{ flex:1, fontSize:12, textAlign:'right', color: realEq===localR && realEq ? '#2a9d8f' : '#c8d8ea', fontWeight: realEq===localR && realEq ? 700 : 400 }}>{localR}</span>
+                            <span style={{ color:'#2a4060', fontSize:11, fontWeight:700 }}>vs</span>
+                            <span style={{ flex:1, fontSize:12, color: realEq===visR && realEq ? '#2a9d8f' : '#c8d8ea', fontWeight: realEq===visR && realEq ? 700 : 400 }}>{visR}</span>
+                          </div>
+                          {tieneEquipos && (
+                            <div style={{ display:'flex', gap:6 }}>
+                              {[localR, visR].map(eq => (
+                                <button key={eq} onClick={() => saveRealClasif(m.id, eq)}
+                                  style={{ flex:1, padding:'5px 8px', borderRadius:8, border:`1.5px solid ${realEq===eq?'rgba(42,157,143,.6)':'rgba(255,215,0,0.2)'}`, background:realEq===eq?'rgba(42,157,143,.2)':'rgba(255,215,0,0.04)', color:realEq===eq?'#2a9d8f':'#ffd700', fontSize:12, cursor:'pointer', fontWeight:realEq===eq?700:400 }}>
+                                  {realEq===eq?'✓ ':''}{eq}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {!tieneEquipos && <div style={{ fontSize:11, color:'#2a4060' }}>⏳ Pendiente de resultados de grupos</div>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+    </div>
     </div>
   )
 }
