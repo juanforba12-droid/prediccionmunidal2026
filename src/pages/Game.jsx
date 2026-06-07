@@ -182,7 +182,7 @@ export default function Game() {
       const re = reales[m.id] || {}
       const p = calcPts(pr.l ?? '', pr.v ?? '', re.l ?? '', re.v ?? '')
       if (p === 5) { pts += 5; exact++ }
-      else if (p === 2) { pts += 2; result++ }
+      else if (p === 1) { pts += 1; result++ }
     })
 
     PARTIDOS_ELIMINATORIAS.forEach(m => {
@@ -397,7 +397,7 @@ export default function Game() {
 
           <div style={{ marginBottom:12, padding:'8px 14px', background:'rgba(255,255,255,0.03)', borderRadius:10, fontSize:11, color:'#2a6070' }}>
             {fase === 'grupos'
-              ? '⚽ Resultado exacto: 5 pts · Ganador/empate: 2 pts'
+              ? '⚽ Resultado exacto: 5 pts · Ganador/empate: 1 pt'
               : fase === 'tercero' ? '🥉 3er puesto — no puntúa'
               : `${TODAS_LAS_FASES.find(f=>f.key===fase)?.label} — Acierta quién pasa: ${PTS_CLASIFICADO[fase]} pts`}
           </div>
@@ -426,7 +426,7 @@ export default function Game() {
               const hasPred = pl !== '' || pv !== '' || !!miPredEq
 
               const ptsBg = pts===5?'#2a9d8f':pts===2?'#f4a261':pts===0&&hasReal?'#e63946':ptsClas>0?'#2a9d8f':null
-              const ptsLabel = pts===5?'⭐ 5 pts':pts===2?'✓ 2 pts':pts===0&&hasReal?'✗ 0 pts':ptsClas>0?`⭐ +${ptsClas} pts`:null
+              const ptsLabel = pts===5?'⭐ 5 pts':pts===1?'✓ 1 pt':pts===0&&hasReal?'✗ 0 pts':ptsClas>0?`⭐ +${ptsClas} pts`:null
 
               // Resolver placeholders con equipos reales
               const localReal = resolverEquipo(m.local)
