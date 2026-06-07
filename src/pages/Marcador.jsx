@@ -42,10 +42,10 @@ function estadoBadge(estado) {
 async function leerPuntos(userId) {
   const { data } = await supabase
     .from('user_points')
-    .select('points')
+    .select('total_points')
     .eq('user_id', userId)
     .single()
-  return data?.points ?? 0
+  return data?.total_points ?? 0
 }
 
 // ── Actualizar puntos (upsert, igual que el resto de juegos) ───────────────
@@ -54,7 +54,7 @@ async function actualizarPuntos(userId, delta) {
   const nuevo = Math.max(0, actual + delta)
   await supabase
     .from('user_points')
-    .upsert({ user_id: userId, points: nuevo }, { onConflict: 'user_id' })
+    .upsert({ user_id: userId, total_points: nuevo }, { onConflict: 'user_id' })
   return nuevo
 }
 
@@ -438,6 +438,28 @@ function TabAdmin({ partidos, onRefresh, onPuntosChange }) {
     onRefresh()
   }
 
+  async function editarPartido(id) {
+    const p = partidos.find(x => x.id === id)
+    if (!p) return
+    const local = prompt("Equipo local:", p.equipo_local)
+    if (local === null) return
+    const visitante = prompt("Equipo visitante:", p.equipo_visitante)
+    if (visitante === null) return
+    const desc = prompt("Descripcion:", p.descripcion || "")
+    const c1 = prompt("Cuota 1 (local):", p.cuota_1)
+    if (c1 === null) return
+    const cx = prompt("Cuota X (empate):", p.cuota_x)
+    if (cx === null) return
+    const c2 = prompt("Cuota 2 (visitante):", p.cuota_2)
+    if (c2 === null) return
+    const { error } = await supabase.from("marcador_partidos").update({
+      equipo_local: local, equipo_visitante: visitante, descripcion: desc || null,
+      cuota_1: parseFloat(c1), cuota_x: parseFloat(cx), cuota_2: parseFloat(c2),
+    }).eq("id", id)
+    if (error) setMsg("Error al editar: " + error.message)
+    else { setMsg("Partido editado"); onRefresh() }
+  }
+
   return (
     <div>
       <h2 className="marc-section-title">➕ Crear partido</h2>
@@ -501,7 +523,7 @@ function TabAdmin({ partidos, onRefresh, onPuntosChange }) {
               </button>
             </div>
           )}
-          <button className="marc-delete-btn" onClick={() => eliminarPartido(p.id)}>Eliminar</button>
+          <button className="marc-edit-btn" onClick={() => editarPartido(p.id)}>✏️ Editar</button> <button className="marc-delete-btn" onClick={() => eliminarPartido(p.id)}>Eliminar</button>
         </div>
       ))}
     </div>
@@ -613,4 +635,6 @@ const STYLES = `
   .marc-score-input{width:80px!important;text-align:center}
   .marc-delete-btn{background:none;border:1px solid #3a1a1a;color:var(--rojo);border-radius:6px;font-size:.75rem;padding:.3rem .7rem;cursor:pointer;margin-top:.3rem;transition:background .15s}
   .marc-delete-btn:hover{background:#1a0a0a}
+  .marc-edit-btn{background:none;border:1px solid #1a3a3a;color:var(--azul);border-radius:6px;font-size:.75rem;padding:.3rem .7rem;cursor:pointer;margin-top:.3rem;margin-right:.4rem;transition:background .15s}
+  .marc-edit-btn:hover{background:#0a1a2a}
 `
