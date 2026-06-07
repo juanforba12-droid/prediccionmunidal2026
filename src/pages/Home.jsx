@@ -8,6 +8,7 @@ function getOrCreateGuest() {
   const saved = localStorage.getItem('jfee_guest')
   if (saved) return saved
   const adjectives = ['Rápido','Feroz','Loco','Mágico','Veloz','Fiero','Bravo','Crack','Astuto','Zurdo']
+  const nouns = ['Delantero','Portero','Centrocampista','Defensa','Capitán','Goleador','Ariete','Líbero']
   const name = adjectives[Math.floor(Math.random()*adjectives.length)] + adjectives[Math.floor(Math.random()*adjectives.length)]
   const num = Math.floor(Math.random()*99)+1
   const guest = `${name}${num}`
@@ -114,7 +115,6 @@ export default function Home() {
   return (
     <div style={{ minHeight:'100vh', background:'linear-gradient(135deg,#0a0a1a 0%,#0d1117 50%,#0a0a1a 100%)', display:'flex', flexDirection:'column', alignItems:'center', fontFamily:'system-ui,sans-serif', padding:'20px', position:'relative' }}>
 
-      {/* Botón esquina superior derecha */}
       {!isLoading && (
         isGuest ? (
           <button onClick={() => nav('/auth')} style={{ position:'absolute', top:20, right:20, background:'linear-gradient(135deg,#e63946,#c1121f)', border:'none', borderRadius:12, padding:'8px 18px', color:'#fff', cursor:'pointer', fontSize:13, fontWeight:700, display:'flex', alignItems:'center', gap:6, boxShadow:'0 2px 12px rgba(230,57,70,0.4)' }}>
@@ -129,7 +129,6 @@ export default function Home() {
         )
       )}
 
-      {/* Logo */}
       <div style={{ textAlign:'center', marginTop:60, marginBottom:32 }}>
         <div style={{ fontFamily:"'Bebas Neue',sans-serif", fontSize:72, letterSpacing:12, background:'linear-gradient(135deg,#e63946,#ff6b6b)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', lineHeight:1, marginBottom:8 }}>JFEE</div>
         <div style={{ color:'rgba(255,255,255,0.3)', fontSize:14, letterSpacing:4, textTransform:'uppercase' }}>Juegos de Futbol En Espanol</div>
@@ -140,7 +139,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Grid 2x2 — juegos principales */}
+      {/* Grid 2x2 */}
       <div style={{ width:'100%', maxWidth:540, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
         <GameCard
           onClick={() => isGuest ? nav('/auth') : nav('/prediccion')}
@@ -173,11 +172,11 @@ export default function Home() {
         />
       </div>
 
-      {/* EL MARCADOR — fila completa */}
+      {/* EL MARCADOR */}
       <div style={{ width:'100%', maxWidth:540, marginTop:12 }}>
         <button onClick={() => nav('/marcador')} style={{
           width:'100%',
-          background:'linear-gradient(135deg, rgba(0,230,118,0.06) 0%, rgba(255,214,0,0.06) 100%)',
+          background:'linear-gradient(135deg,rgba(0,230,118,0.06) 0%,rgba(255,214,0,0.06) 100%)',
           border:'1px solid rgba(0,230,118,0.25)',
           borderRadius:20, padding:'18px 20px', cursor:'pointer', textAlign:'left', outline:'none',
           display:'flex', alignItems:'center', gap:16,
@@ -197,7 +196,7 @@ export default function Home() {
         </button>
       </div>
 
-      {/* CLASIFICACIÓN — fila completa */}
+      {/* CLASIFICACION */}
       <div style={{ width:'100%', maxWidth:540, marginTop:12 }}>
         <button onClick={() => nav('/ranking')} style={{
           width:'100%', background:'rgba(192,132,252,0.08)', border:'1px solid rgba(192,132,252,0.3)',
@@ -228,15 +227,12 @@ export default function Home() {
           <a href="mailto:juanforba12@gmail.com" style={{ color:'#e63946', fontWeight:700, fontSize:14, textDecoration:'none', letterSpacing:0.5 }}>
             ✉️ juanforba12@gmail.com
           </a>
-          <div style={{ fontSize:11, color:'rgba(255,255,255,0.2)', marginTop:6 }}>
-            Contáctanos y te respondemos lo antes posible
-          </div>
         </div>
       </div>
 
-      <div style={{ marginTop:20, marginBottom:20, color:'rgba(255,255,255,0.15)', fontSize:12, letterSpacing:2 }}>JFEE © 2026</div>
+      <div style={{ marginTop:24, marginBottom:20, color:'rgba(255,255,255,0.15)', fontSize:12, letterSpacing:2 }}>JFEE © 2026</div>
 
-      {/* Modal de cuenta */}
+      {/* Modal cuenta */}
       {showAccount && user && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100, padding:20 }} onClick={() => setShowAccount(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background:'#0f0f1a', border:'1px solid rgba(255,255,255,0.1)', borderRadius:20, padding:28, width:'100%', maxWidth:380 }}>
