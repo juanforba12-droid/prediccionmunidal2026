@@ -129,7 +129,11 @@ export default function Game() {
   const clasifTimer = useRef(null)
   const savePredClasif = (matchId, equipo) => {
     if (locked) return
-    const next = { ...predClasif, [matchId]: equipo }
+    // Toggle: si ya está seleccionado, desmarcar
+    const yaSeleccionado = predClasif[matchId] === equipo
+    const next = yaSeleccionado
+      ? { ...predClasif, [matchId]: '' }
+      : { ...predClasif, [matchId]: equipo }
     setPredClasif(next)
     clearTimeout(clasifTimer.current)
     clasifTimer.current = setTimeout(async () => {
@@ -141,7 +145,11 @@ export default function Game() {
   }
 
   const saveRealClasif = async (matchId, equipo) => {
-    const next = { ...realClasif, [matchId]: equipo }
+    // Toggle: si ya está marcado, desmarcar
+    const yaSeleccionado = realClasif[matchId] === equipo
+    const next = yaSeleccionado
+      ? { ...realClasif, [matchId]: '' }
+      : { ...realClasif, [matchId]: equipo }
     setRealClasif(next)
     const newExtrasReal = { ...extrasReal, clasif_elim: next }
     setExtrasReal(newExtrasReal)
@@ -219,6 +227,47 @@ export default function Game() {
     await supabase.from('players').delete().eq('id', playerId)
   }
 
+
+  // Resolver placeholder → equipo real
+  // Dieciseisavos: ids 101-108 y 113-120 → G1-G16
+  // Octavos: ids 201-208 → C1-C8
+  // Cuartos: ids 301-304 → S1-S4... 
+  const DISEC_IDS = [101,102,103,104,105,106,107,108,113,114,115,116,117,118,119,120]
+  const OCT_IDS   = [201,202,203,204,205,206,207,208]
+  const CUA_IDS   = [301,302,303,304]
+  const SEMI_IDS  = [401,402]
+
+  const resolverEquipo = (placeholder) => {
+    if (!placeholder) return placeholder
+    // G1-G16: ganador de dieciseisavos
+    const gMatch = placeholder.match(/^G(\d+)$/)
+    if (gMatch) {
+      const idx = parseInt(gMatch[1]) - 1
+      const partidoId = DISEC_IDS[idx]
+      return realClasif[partidoId] || placeholder
+    }
+    // C1-C16: ganador de octavos
+    const cMatch = placeholder.match(/^C(\d+)$/)
+    if (cMatch) {
+      const idx = parseInt(cMatch[1]) - 1
+      const partidoId = OCT_IDS[idx]
+      return realClasif[partidoId] || placeholder
+    }
+    // S1-S8: ganador de cuartos
+    const sMatch = placeholder.match(/^S(\d+)$/)
+    if (sMatch) {
+      const idx = parseInt(sMatch[1]) - 1
+      const partidoId = CUA_IDS[idx]
+      return realClasif[partidoId] || placeholder
+    }
+    // Ganador SF1/SF2: ganador de semis
+    if (placeholder === 'Ganador SF1') return realClasif[SEMI_IDS[0]] || placeholder
+    if (placeholder === 'Ganador SF2') return realClasif[SEMI_IDS[1]] || placeholder
+    if (placeholder === 'Perdedor SF1') return placeholder
+    if (placeholder === 'Perdedor SF2') return placeholder
+    return placeholder
+  }
+
   if (loading) return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:16 }}>
       <div style={{ fontSize:40 }}>⚽</div><div style={{ color:'#3a5070' }}>Cargando...</div>
@@ -293,9 +342,9 @@ export default function Game() {
 
         {/* MAIN TABS */}
         <div style={{ display:'flex', gap:4, marginBottom:14, overflowX:'auto' }}>
-          {[['quiniela','📝'],['extras','🎯'],['clasif','🗂️'],['ranking','🏅'],['tabla','📊'],['grupo','👥']].map(([k,l]) => (
+          {[['quiniela','📝'],['extras','🎯'],['ranking','🏅'],['tabla','📊'],['grupo','👥']].map(([k,l]) => (
             <button key={k} onClick={() => setTab(k)} style={{ flex:1, padding:'10px 4px', borderRadius:10, border:'none', cursor:'pointer', fontWeight:700, fontSize:11, background:tab===k?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.04)', color:tab===k?'#e8eaf0':'#2a4060', borderBottom:tab===k?`3px solid ${mc}`:'3px solid transparent', whiteSpace:'nowrap' }}>
-              {l} {k==='clasif'?'Clasif.':k.charAt(0).toUpperCase()+k.slice(1)}
+              {l} {k.charAt(0).toUpperCase()+k.slice(1)}
             </button>
           ))}
         </div>
@@ -353,7 +402,10 @@ export default function Game() {
               const ptsBg = pts===5?'#2a9d8f':pts===2?'#f4a261':pts===0&&hasReal?'#e63946':ptsClas>0?'#2a9d8f':null
               const ptsLabel = pts===5?'⭐ 5 pts':pts===2?'✓ 2 pts':pts===0&&hasReal?'✗ 0 pts':ptsClas>0?`⭐ +${ptsClas} pts`:null
 
-              const equiposReales = [m.local, m.vis].filter(e => e && e!=='3?' && !/^[GCS]\d/.test(e) && !e.includes('Ganador') && !e.includes('Perdedor'))
+              // Resolver placeholders con equipos reales
+              const localReal = resolverEquipo(m.local)
+              const visReal   = resolverEquipo(m.vis)
+              const equiposReales = [localReal, visReal].filter(e => e && e!=='3?' && !/^[GCS]\d/.test(e) && !e.includes('Ganador') && !e.includes('Perdedor') && !e.includes('Perdedor'))
 
               return (
                 <div key={m.id} style={{ background:hasPred?`${mc}0d`:'rgba(255,255,255,0.03)', border:`1px solid ${hasPred?mc+'33':'rgba(255,255,255,0.07)'}`, borderRadius:12, padding:'12px 14px' }}>
@@ -366,7 +418,7 @@ export default function Game() {
                   </div>
 
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:isElim&&!isTerceroFase?10:0 }}>
-                    <div style={{ flex:1, textAlign:'right', fontSize:13, fontWeight:700 }}>{m.local}</div>
+                    <div style={{ flex:1, textAlign:'right', fontSize:13, fontWeight:700 }}>{localReal}</div>
                     {!isElim ? (
                       <div style={{ display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
                         <input type="text" inputMode="numeric" maxLength={2} value={pl} onChange={e=>savePred(m.id,'l',e.target.value)} placeholder="–" readOnly={locked}
@@ -378,7 +430,7 @@ export default function Game() {
                     ) : (
                       <div style={{ fontSize:16, color:'#1a2a3a', fontWeight:900 }}>vs</div>
                     )}
-                    <div style={{ flex:1, textAlign:'left', fontSize:13, fontWeight:700 }}>{m.vis==='3?'?'3º pendiente':m.vis}</div>
+                    <div style={{ flex:1, textAlign:'left', fontSize:13, fontWeight:700 }}>{visReal==='3?'?'3º pendiente':visReal}</div>
                   </div>
 
                   {/* Eliminatorias: quién pasa */}
@@ -520,116 +572,8 @@ export default function Game() {
           </div>
         )}
 
-        {/* ═══════════════ CLASIFICACIÓN ═══════════════ */}
-        {tab === 'clasif' && (() => {
-          const myClasif=extras, realClas=extrasReal
-          const realTerc=realClas.mejores_terceros||[], predTerc=myClasif.mejores_terceros||[]
-          const toggleTercero=(equipo)=>{
-            if(locked) return
-            const cur=myClasif.mejores_terceros||[]
-            const next=cur.includes(equipo)?cur.filter(e=>e!==equipo):cur.length<8?[...cur,equipo]:cur
-            saveExtras({...myClasif,mejores_terceros:next})
-          }
-          const standings={}
-          Object.entries(GRUPOS).forEach(([grp,teams])=>{ standings[grp]=teams.map(t=>({name:t,pts:0,gf:0,gc:0})) })
-          PARTIDOS_GRUPOS.forEach(m=>{
-            const rl=reales[m.id]?.l,rv=reales[m.id]?.v
-            if(rl==null||rv==null||rl===''||rv==='') return
-            const gl=parseInt(rl),gv=parseInt(rv),grpArr=standings[m.grupo]; if(!grpArr) return
-            const local=grpArr.find(t=>t.name===m.local),vis=grpArr.find(t=>t.name===m.vis); if(!local||!vis) return
-            local.gf+=gl;local.gc+=gv;vis.gf+=gv;vis.gc+=gl
-            if(gl>gv)local.pts+=3; else if(gl<gv)vis.pts+=3; else{local.pts++;vis.pts++}
-          })
-          const tercerosPorGrupo={}
-          Object.entries(standings).forEach(([grp,teams])=>{
-            const sorted=[...teams].sort((a,b)=>b.pts-a.pts||(b.gf-b.gc)-(a.gf-a.gc)||b.gf-a.gf)
-            tercerosPorGrupo[grp]=sorted[2]?.name||GRUPOS[grp][2]
-          })
-          return (
-            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-              <div style={{ background:locked?'rgba(244,162,97,0.06)':'rgba(255,255,255,0.03)', border:locked?'1px solid rgba(244,162,97,0.2)':'none', borderRadius:12, padding:'12px 16px', fontSize:12, color:locked?'#f4a261':'#2a6070' }}>
-                {locked?'🔒 Predicciones cerradas.':'🗂️ 1º grupo: 2 pts · 2º grupo: 1 pt · Tercero clasificado: 1 pt'}
-              </div>
-              <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16 }}>
-                <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:14 }}>🏆 1º y 2º de cada grupo</div>
-                {Object.entries(GRUPOS).map(([grp,equipos])=>{
-                  const r1=realClas[`1_${grp}`]||'',r2=realClas[`2_${grp}`]||''
-                  const p1=myClasif[`1_${grp}`]||'',p2=myClasif[`2_${grp}`]||''
-                  const h1=r1&&p1&&p1.toLowerCase()===r1.toLowerCase()
-                  const h2=r2&&p2&&p2.toLowerCase()===r2.toLowerCase()
-                  return (
-                    <div key={grp} style={{ marginBottom:16, paddingBottom:16, borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ fontSize:12, fontWeight:700, color:mc, marginBottom:6 }}>GRUPO {grp} — {equipos.join(' · ')}</div>
-                      <div style={{ display:'flex', gap:8 }}>
-                        {[['1',p1,r1,h1,2],['2',p2,r2,h2,1]].map(([pos,pred,real,hit,pts])=>(
-                          <div key={pos} style={{ flex:1 }}>
-                            <div style={{ fontSize:10, color:hit?'#2a9d8f':'#2a4060', marginBottom:4, fontWeight:700 }}>
-                              {pos==='1'?'🥇':'🥈'} {pos}º +{pts}pt {hit&&'⭐'}
-                            </div>
-                            <select value={pred} onChange={e=>!locked&&saveExtras({...myClasif,[`${pos}_${grp}`]:e.target.value})} disabled={locked}
-                              style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:`1px solid ${pred?'rgba(42,157,143,0.5)':'rgba(255,255,255,0.1)'}`, background:locked?'rgba(255,255,255,0.03)':pred?'rgba(42,157,143,0.08)':'rgba(255,255,255,0.05)', color:locked?'#3a5070':'#e8eaf0', fontSize:13, cursor:locked?'not-allowed':'pointer', outline:'none' }}>
-                              <option value="">— Elige —</option>
-                              {equipos.map(eq=><option key={eq} value={eq}>{eq}</option>)}
-                            </select>
-                            {real&&!hit&&<div style={{ fontSize:10, color:'#e63946', marginTop:3 }}>Real: {real}</div>}
-                            {isCreator&&(
-                              <select value={real} onChange={e=>saveExtrasReal({...realClas,[`${pos}_${grp}`]:e.target.value})} style={{ ...realInpStyle, marginTop:6 }}>
-                                <option value="">Admin — {pos}º real</option>
-                                {equipos.map(eq=><option key={eq} value={eq}>{eq}</option>)}
-                              </select>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:16 }}>
-                <div style={{ fontWeight:700, fontSize:15, color:'#e8eaf0', marginBottom:4 }}>🎯 8 mejores terceros · 1 pt c/u</div>
-                <div style={{ fontSize:11, color:'#2a4060', marginBottom:12 }}>
-                  {!locked&&<span style={{ color:predTerc.length===8?'#2a9d8f':'#f4a261' }}>{predTerc.length}/8 seleccionados — </span>}
-                  Se calculan automáticamente por pts · GD · GF
-                </div>
-                {(() => {
-                  // Calcular los 8 mejores terceros automáticamente
-                  const terceros = Object.entries(tercerosPorGrupo).map(([grp, eq]) => {
-                    const st = standings[grp]
-                    const t = st ? [...st].sort((a,b)=>b.pts-a.pts||(b.gf-b.gc)-(a.gf-a.gc)||b.gf-a.gf)[2] : null
-                    return { grp, eq, pts: t?.pts||0, gd: (t?.gf||0)-(t?.gc||0), gf: t?.gf||0 }
-                  })
-                  const mejoresTerc = [...terceros].sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf).slice(0,8).map(t=>t.eq)
-                  // Actualizar automáticamente en Supabase si hay resultados y es creator
-                  if (isCreator && Object.values(reales).some(r=>r.l!==''&&r.l!=null)) {
-                    const realTercActual = realClas.mejores_terceros || []
-                    if (JSON.stringify([...mejoresTerc].sort()) !== JSON.stringify([...realTercActual].sort())) {
-                      saveExtrasReal({...realClas, mejores_terceros: mejoresTerc})
-                    }
-                  }
-                  return (
-                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                      {terceros.sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf).map(({grp,eq,pts,gd,gf},idx)=>{
-                        const isSel=predTerc.includes(eq),isReal=mejoresTerc.includes(eq),isHit=isSel&&isReal
-                        const top8=idx<8
-                        return (
-                          <div key={grp} onClick={()=>toggleTercero(eq)}
-                            style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, border:`1px solid ${isHit?'rgba(42,157,143,0.4)':isReal?'rgba(255,215,0,0.3)':isSel?`${mc}44`:'rgba(255,255,255,0.07)'}`, background:isHit?'rgba(42,157,143,0.08)':isReal?'rgba(255,215,0,0.04)':isSel?`${mc}10`:'rgba(255,255,255,0.02)', cursor:locked?'default':'pointer', opacity:(!locked&&predTerc.length>=8&&!isSel)?0.4:1 }}>
-                            <div style={{ fontSize:11, fontWeight:700, color:top8?'#ffd700':'#2a4060', width:22 }}>{idx<8?`${idx+1}º`:'–'}</div>
-                            <div style={{ flex:1, fontSize:13, fontWeight:isSel?700:400, color:isHit?'#2a9d8f':isReal?'#ffd700':isSel?mc:'#8a9ab0' }}>{eq} <span style={{fontSize:10,color:'#2a4060'}}>(G{grp})</span></div>
-                            <div style={{ fontSize:10, color:'#2a4060' }}>{pts}pts GD{gd>0?'+':''}{gd}</div>
-                            {isSel&&<div style={{ width:20, height:20, borderRadius:'50%', background:isHit?'#2a9d8f':mc, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, color:'#fff', fontWeight:700 }}>{isHit?'⭐':'✓'}</div>}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })()}
-              </div>
-            </div>
-          )
-        })()}
 
-        {/* ═══════════════ RANKING ═══════════════ */}
+                {/* ═══════════════ RANKING ═══════════════ */}
         {tab === 'ranking' && (
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             <div style={{ textAlign:'center', fontSize:11, color:'#2a4060', marginBottom:8 }}>Clasificación en vivo</div>
