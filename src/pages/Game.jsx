@@ -237,8 +237,34 @@ export default function Game() {
   const CUA_IDS   = [301,302,303,304]
   const SEMI_IDS  = [401,402]
 
+  // Calcular standings en tiempo real para resolver 1A, 2B, etc.
+  const standingsVivo = {}
+  Object.entries(GRUPOS).forEach(([grp, teams]) => {
+    standingsVivo[grp] = teams.map(t => ({ name:t, pts:0, gf:0, gc:0 }))
+  })
+  PARTIDOS_GRUPOS.forEach(m => {
+    const rl = reales[m.id]?.l, rv = reales[m.id]?.v
+    if (rl==null||rv==null||rl===''||rv==='') return
+    const gl=parseInt(rl), gv=parseInt(rv), grpArr=standingsVivo[m.grupo]
+    if (!grpArr) return
+    const local=grpArr.find(t=>t.name===m.local), vis=grpArr.find(t=>t.name===m.vis)
+    if (!local||!vis) return
+    local.gf+=gl; local.gc+=gv; vis.gf+=gv; vis.gc+=gl
+    if(gl>gv) local.pts+=3; else if(gl<gv) vis.pts+=3; else { local.pts++; vis.pts++ }
+  })
+
   const resolverEquipo = (placeholder) => {
     if (!placeholder) return placeholder
+    // 1A, 2B, 3C... → posición real en el grupo según standings
+    const grpMatch = placeholder.match(/^([1-4])([A-L])$/)
+    if (grpMatch) {
+      const pos = parseInt(grpMatch[1]) - 1
+      const grp = grpMatch[2]
+      const sorted = standingsVivo[grp]
+        ? [...standingsVivo[grp]].sort((a,b)=>b.pts-a.pts||(b.gf-b.gc)-(a.gf-a.gc)||b.gf-a.gf)
+        : []
+      return sorted[pos]?.name || placeholder
+    }
     // G1-G16: ganador de dieciseisavos
     const gMatch = placeholder.match(/^G(\d+)$/)
     if (gMatch) {
@@ -405,7 +431,11 @@ export default function Game() {
               // Resolver placeholders con equipos reales
               const localReal = resolverEquipo(m.local)
               const visReal   = resolverEquipo(m.vis)
-              const equiposReales = [localReal, visReal].filter(e => e && e!=='3?' && !/^[GCS]\d/.test(e) && !e.includes('Ganador') && !e.includes('Perdedor') && !e.includes('Perdedor'))
+              // equiposReales: solo si ambos son equipos reales (no placeholders)
+              const esPlaceholder = (e) => !e || e==='3?' || /^[GCS]\d/.test(e) || e.includes('Ganador') || e.includes('Perdedor')
+              const equiposReales = (!esPlaceholder(localReal) && !esPlaceholder(visReal))
+                ? [localReal, visReal]
+                : []
 
               return (
                 <div key={m.id} style={{ background:hasPred?`${mc}0d`:'rgba(255,255,255,0.03)', border:`1px solid ${hasPred?mc+'33':'rgba(255,255,255,0.07)'}`, borderRadius:12, padding:'12px 14px' }}>
