@@ -25,8 +25,8 @@ function isAdmin(uid) { return ADMIN_UIDS.includes(uid) }
 
 function formatFecha(iso) {
   const d = new Date(iso)
-  return d.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' })
-    + ' · ' + d.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })
+  return d.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric', timeZone:'Europe/Madrid' })
+    + ' · ' + d.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', timeZone:'Europe/Madrid' })
 }
 
 function estadoBadge(estado) {
