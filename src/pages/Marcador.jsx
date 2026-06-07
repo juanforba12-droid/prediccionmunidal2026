@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
+import { getRankInfo } from '../lib/ranks.js'
 
 // ── Admin UIDs ─────────────────────────────────────────────────────────────
 const ADMIN_UIDS = ['2f506ea7-bb8a-4e5e-bf90-2816fcd73fe1']
@@ -147,6 +148,8 @@ export default function Marcador() {
             <p className="marc-subtitle">Apuesta tus puntos · Multiplica tus ganancias</p>
           </div>
         </div>
+        <div className="marc-header-right">
+        {(() => { const ri = getRankInfo(userPoints); return <div className="marc-rank-badge" style={{background:`${ri.rank.color}18`,border:`1px solid ${ri.rank.color}44`,borderRadius:8,padding:".3rem .7rem",fontSize:".75rem",color:ri.rank.color,fontWeight:700}}>{ri.rank.emoji} {ri.rank.name}</div> })()} 
         <div className="marc-stats">
           <div className="marc-stat">
             <span className="marc-stat-val">{puntosLibres.toLocaleString()}</span>
@@ -156,6 +159,7 @@ export default function Marcador() {
             <span className="marc-stat-val">{puntosEnJuego.toLocaleString()}</span>
             <span className="marc-stat-lbl">en juego</span>
           </div>
+        </div>
         </div>
       </header>
 
@@ -392,6 +396,8 @@ function TabAdmin({ partidos, onRefresh, onPuntosChange }) {
   const [form, setForm] = useState({ equipo_local:'', equipo_visitante:'', descripcion:'', fecha_inicio:'', cuota_1:'', cuota_x:'', cuota_2:'' })
   const [msg, setMsg] = useState('')
   const [resolv, setResolv] = useState({})
+  const [editando, setEditando] = useState(null)
+  const [editForm, setEditForm] = useState({})
 
   async function crearPartido() {
     setMsg('')
@@ -438,26 +444,26 @@ function TabAdmin({ partidos, onRefresh, onPuntosChange }) {
     onRefresh()
   }
 
-  async function editarPartido(id) {
-    const p = partidos.find(x => x.id === id)
-    if (!p) return
-    const local = prompt("Equipo local:", p.equipo_local)
-    if (local === null) return
-    const visitante = prompt("Equipo visitante:", p.equipo_visitante)
-    if (visitante === null) return
-    const desc = prompt("Descripcion:", p.descripcion || "")
-    const c1 = prompt("Cuota 1 (local):", p.cuota_1)
-    if (c1 === null) return
-    const cx = prompt("Cuota X (empate):", p.cuota_x)
-    if (cx === null) return
-    const c2 = prompt("Cuota 2 (visitante):", p.cuota_2)
-    if (c2 === null) return
+
+  function abrirEdicion(p) {
+    // Convertir fecha UTC a datetime-local en hora española
+    const d = new Date(p.fecha_inicio)
+    const offset = d.getTimezoneOffset()
+    const localMs = d.getTime() - (offset * 60000)
+    const localISO = new Date(localMs).toISOString().slice(0,16)
+    setEditando(p.id)
+    setEditForm({ equipo_local:p.equipo_local, equipo_visitante:p.equipo_visitante, descripcion:p.descripcion||'', fecha_inicio:localISO, cuota_1:p.cuota_1, cuota_x:p.cuota_x, cuota_2:p.cuota_2 })
+  }
+
+  async function guardarEdicion(id) {
+    const { equipo_local, equipo_visitante, fecha_inicio, cuota_1, cuota_x, cuota_2 } = editForm
+    if (!equipo_local || !equipo_visitante || !fecha_inicio || !cuota_1 || !cuota_x || !cuota_2) return setMsg("❌ Rellena todos los campos")
     const { error } = await supabase.from("marcador_partidos").update({
-      equipo_local: local, equipo_visitante: visitante, descripcion: desc || null,
-      cuota_1: parseFloat(c1), cuota_x: parseFloat(cx), cuota_2: parseFloat(c2),
+      equipo_local, equipo_visitante, descripcion: editForm.descripcion || null,
+      fecha_inicio, cuota_1: parseFloat(cuota_1), cuota_x: parseFloat(cuota_x), cuota_2: parseFloat(cuota_2),
     }).eq("id", id)
-    if (error) setMsg("Error al editar: " + error.message)
-    else { setMsg("Partido editado"); onRefresh() }
+    if (error) setMsg("❌ " + error.message)
+    else { setMsg("✅ Partido editado"); setEditando(null); onRefresh() }
   }
 
   return (
@@ -523,7 +529,23 @@ function TabAdmin({ partidos, onRefresh, onPuntosChange }) {
               </button>
             </div>
           )}
-          <button className="marc-edit-btn" onClick={() => editarPartido(p.id)}>✏️ Editar</button> <button className="marc-delete-btn" onClick={() => eliminarPartido(p.id)}>Eliminar</button>
+          <button className="marc-edit-btn" onClick={() => editando === p.id ? setEditando(null) : abrirEdicion(p)}>{editando === p.id ? "✕ Cancelar" : "✏️ Editar"}</button> <button className="marc-delete-btn" onClick={() => eliminarPartido(p.id)}>Eliminar</button>
+          {editando === p.id && (
+            <div className="marc-edit-form">
+              <div className="marc-admin-row2">
+                <input className="marc-input" placeholder="Equipo local" value={editForm.equipo_local} onChange={e => setEditForm(f => ({...f, equipo_local:e.target.value}))} />
+                <input className="marc-input" placeholder="Equipo visitante" value={editForm.equipo_visitante} onChange={e => setEditForm(f => ({...f, equipo_visitante:e.target.value}))} />
+              </div>
+              <input className="marc-input" placeholder="Descripcion" value={editForm.descripcion} onChange={e => setEditForm(f => ({...f, descripcion:e.target.value}))} />
+              <input className="marc-input" type="datetime-local" value={editForm.fecha_inicio} onChange={e => setEditForm(f => ({...f, fecha_inicio:e.target.value}))} />
+              <div className="marc-admin-row3">
+                <div className="marc-cuota-field"><label>Cuota 1</label><input className="marc-input" type="number" step="0.01" value={editForm.cuota_1} onChange={e => setEditForm(f => ({...f, cuota_1:e.target.value}))} /></div>
+                <div className="marc-cuota-field"><label>Cuota X</label><input className="marc-input" type="number" step="0.01" value={editForm.cuota_x} onChange={e => setEditForm(f => ({...f, cuota_x:e.target.value}))} /></div>
+                <div className="marc-cuota-field"><label>Cuota 2</label><input className="marc-input" type="number" step="0.01" value={editForm.cuota_2} onChange={e => setEditForm(f => ({...f, cuota_2:e.target.value}))} /></div>
+              </div>
+              <button className="marc-admin-btn" onClick={() => guardarEdicion(p.id)}>Guardar cambios</button>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -541,6 +563,7 @@ const STYLES = `
   .marc-logo{font-size:2rem}
   .marc-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:3px;background:linear-gradient(90deg,var(--verde),var(--amarillo));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin:0}
   .marc-subtitle{color:var(--muted);font-size:.75rem;margin:.2rem 0 0}
+  .marc-header-right{display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;flex-shrink:0}
   .marc-stats{display:flex;gap:.6rem;flex-shrink:0}
   .marc-stat{text-align:right;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.4rem .7rem}
   .marc-stat-val{display:block;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;line-height:1;color:var(--verde)}
@@ -637,4 +660,5 @@ const STYLES = `
   .marc-delete-btn:hover{background:#1a0a0a}
   .marc-edit-btn{background:none;border:1px solid #1a3a3a;color:var(--azul);border-radius:6px;font-size:.75rem;padding:.3rem .7rem;cursor:pointer;margin-top:.3rem;margin-right:.4rem;transition:background .15s}
   .marc-edit-btn:hover{background:#0a1a2a}
+  .marc-edit-form{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-top:.7rem;display:flex;flex-direction:column;gap:.6rem}
 `
