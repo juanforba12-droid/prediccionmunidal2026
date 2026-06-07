@@ -8,7 +8,6 @@ function getOrCreateGuest() {
   const saved = localStorage.getItem('jfee_guest')
   if (saved) return saved
   const adjectives = ['Rápido','Feroz','Loco','Mágico','Veloz','Fiero','Bravo','Crack','Astuto','Zurdo']
-  const nouns = ['Delantero','Portero','Centrocampista','Defensa','Capitán','Goleador','Ariete','Líbero']
   const name = adjectives[Math.floor(Math.random()*adjectives.length)] + adjectives[Math.floor(Math.random()*adjectives.length)]
   const num = Math.floor(Math.random()*99)+1
   const guest = `${name}${num}`
@@ -141,9 +140,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* Grid 2x2 */}
+      {/* Grid 2x2 — juegos principales */}
       <div style={{ width:'100%', maxWidth:540, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-
         <GameCard
           onClick={() => isGuest ? nav('/auth') : nav('/prediccion')}
           color="230,57,70"
@@ -152,7 +150,6 @@ export default function Home() {
           tags={['72 partidos','Grupos','Ranking']}
           locked={isGuest}
         />
-
         <GameCard
           onClick={() => nav('/mentiroso')}
           color="155,93,229"
@@ -160,7 +157,6 @@ export default function Home() {
           desc="Uno es el impostor. Descúbrele antes de que te descubran."
           tags={['Multijugador','Votaciones']}
         />
-
         <GameCard
           onClick={() => nav('/topdiezgame')}
           color="251,191,36"
@@ -168,7 +164,6 @@ export default function Home() {
           desc="Máximos goleadores y tops históricos. Solo o por turnos."
           tags={['Individual','Online','27 temp.']}
         />
-
         <GameCard
           onClick={() => nav('/adivina')}
           color="99,179,237"
@@ -176,10 +171,33 @@ export default function Home() {
           desc="7 pistas, 7 puntos. Cuanto antes adivines, más puntos."
           tags={['Individual','Online','300+']}
         />
-
       </div>
 
-      {/* Clasificación — fila completa debajo */}
+      {/* EL MARCADOR — fila completa */}
+      <div style={{ width:'100%', maxWidth:540, marginTop:12 }}>
+        <button onClick={() => nav('/marcador')} style={{
+          width:'100%',
+          background:'linear-gradient(135deg, rgba(0,230,118,0.06) 0%, rgba(255,214,0,0.06) 100%)',
+          border:'1px solid rgba(0,230,118,0.25)',
+          borderRadius:20, padding:'18px 20px', cursor:'pointer', textAlign:'left', outline:'none',
+          display:'flex', alignItems:'center', gap:16,
+          transition:'transform 0.15s, border-color 0.15s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.transform='scale(1.01)'; e.currentTarget.style.borderColor='rgba(0,230,118,0.5)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.borderColor='rgba(0,230,118,0.25)' }}
+        >
+          <div style={{ width:44, height:44, borderRadius:12, background:'rgba(0,230,118,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>🎰</div>
+          <div style={{ flex:1 }}>
+            <div style={{ color:'#00e676', fontWeight:800, fontSize:16, letterSpacing:1 }}>EL MARCADOR</div>
+            <div style={{ color:'rgba(255,255,255,0.4)', fontSize:12 }}>Apuesta tus puntos · Multiplica tus ganancias</div>
+          </div>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
+            {['Cuotas reales','1X2','Mundial'].map(t => <span key={t} style={{ fontSize:10, color:'#00e676', background:'rgba(0,230,118,0.1)', padding:'2px 8px', borderRadius:20 }}>{t}</span>)}
+          </div>
+        </button>
+      </div>
+
+      {/* CLASIFICACIÓN — fila completa */}
       <div style={{ width:'100%', maxWidth:540, marginTop:12 }}>
         <button onClick={() => nav('/ranking')} style={{
           width:'100%', background:'rgba(192,132,252,0.08)', border:'1px solid rgba(192,132,252,0.3)',
@@ -201,7 +219,22 @@ export default function Home() {
         </button>
       </div>
 
-      <div style={{ marginTop:24, marginBottom:20, color:'rgba(255,255,255,0.15)', fontSize:12, letterSpacing:2 }}>JFEE © 2026</div>
+      {/* CONTACTO */}
+      <div style={{ width:'100%', maxWidth:540, marginTop:20 }}>
+        <div style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:16, padding:'18px 20px', textAlign:'center' }}>
+          <div style={{ fontSize:13, color:'rgba(255,255,255,0.5)', marginBottom:6 }}>
+            ¿Tienes algún problema, sugerencia o quieres proponer un cambio?
+          </div>
+          <a href="mailto:juanforba12@gmail.com" style={{ color:'#e63946', fontWeight:700, fontSize:14, textDecoration:'none', letterSpacing:0.5 }}>
+            ✉️ juanforba12@gmail.com
+          </a>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.2)', marginTop:6 }}>
+            Contáctanos y te respondemos lo antes posible
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop:20, marginBottom:20, color:'rgba(255,255,255,0.15)', fontSize:12, letterSpacing:2 }}>JFEE © 2026</div>
 
       {/* Modal de cuenta */}
       {showAccount && user && (
