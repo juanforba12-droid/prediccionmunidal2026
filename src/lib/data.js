@@ -166,7 +166,7 @@ export function calcPts(pl, pv, rl, rv) {
   const [rli, rvi, pli, pvi] = [rl, rv, pl, pv].map(Number)
   if (pli === rli && pvi === rvi) return 5
   const sign = x => x > 0 ? 1 : x < 0 ? -1 : 0
-  if (sign(pli - pvi) === sign(rli - rvi)) return 2
+  if (sign(pli - pvi) === sign(rli - rvi)) return 1
   return 0
 }
 
