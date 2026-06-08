@@ -199,7 +199,18 @@ export default function Game() {
           rMap[r.match_id] = { l: r.goals_local != null ? r.goals_local : '', v: r.goals_vis != null ? r.goals_vis : '' }
         })
       }
-      setReales(rMap)
+      // Fusionar con estado local: si local tiene valor y Supabase no, conservar local
+      setReales(function(prev) {
+        const merged = Object.assign({}, rMap)
+        Object.keys(prev).forEach(function(mid) {
+          if (!merged[mid]) merged[mid] = prev[mid]
+          else {
+            if ((prev[mid].l !== '' && prev[mid].l != null) && (merged[mid].l === '' || merged[mid].l == null)) merged[mid].l = prev[mid].l
+            if ((prev[mid].v !== '' && prev[mid].v != null) && (merged[mid].v === '' || merged[mid].v == null)) merged[mid].v = prev[mid].v
+          }
+        })
+        return merged
+      })
       const me = JSON.parse(localStorage.getItem('player_' + code) || '{}')
       const apMap = {}, myMap = {}, apClasif = {}
       if (predsRes.data) {
@@ -254,12 +265,14 @@ export default function Game() {
 
   async function saveReal(matchId, side, val) {
     const clean = val.replace(/\D/g, '').slice(0, 2)
-    setReales(function(r) { return Object.assign({}, r, { [matchId]: Object.assign({}, r[matchId] || {}, { [side]: clean }) }) })
-    const cur = Object.assign({}, reales[matchId] || {}, { [side]: clean })
+    // Actualizar estado local inmediatamente para que standingsVivo se recalcule
+    const newReales = Object.assign({}, reales, { [matchId]: Object.assign({}, reales[matchId] || {}, { [side]: clean }) })
+    setReales(newReales)
+    const cur = newReales[matchId]
     await supabase.from('results').upsert({
       group_code: code, match_id: matchId,
-      goals_local: cur.l !== '' ? parseInt(cur.l) : null,
-      goals_vis: cur.v !== '' ? parseInt(cur.v) : null,
+      goals_local: cur.l !== '' && cur.l != null ? parseInt(cur.l) : null,
+      goals_vis: cur.v !== '' && cur.v != null ? parseInt(cur.v) : null,
     }, { onConflict: 'group_code,match_id' })
   }
 
