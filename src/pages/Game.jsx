@@ -142,13 +142,55 @@ export default function Game() {
 
   const standingsVivo = calcStandingsFromReales(reales)
 
-  // Calcular los 8 mejores terceros en tiempo real desde standingsVivo
+  // Calcular los 8 mejores terceros — solo cuando todos los partidos de grupos tienen prediccion
   const mejoresTerceros = (function() {
+    // Para el jugador: usar sus predicciones; para el admin/resultados reales: usar reales
+    // Solo mostrar si TODOS los partidos de grupos tienen resultado
+    const totalGrupos = PARTIDOS_GRUPOS.length
+    const predCompletas = PARTIDOS_GRUPOS.filter(function(m) {
+      const pr = preds[m.id]
+      return pr && pr.l !== '' && pr.l != null && pr.v !== '' && pr.v != null
+    }).length
+    const realesCompletos = PARTIDOS_GRUPOS.filter(function(m) {
+      const r = reales[m.id]
+      return r && r.l !== '' && r.l != null && r.v !== '' && r.v != null
+    }).length
+
+    // Usar predicciones del jugador si las tiene todas; si no, usar reales si están todos
+    const fuenteCompleta = predCompletas === totalGrupos ? 'preds' : realesCompletos === totalGrupos ? 'reales' : null
+    if (!fuenteCompleta) return []
+
+    // Calcular standings desde la fuente elegida
+    const sv = {}
+    const gks = Object.keys(GRUPOS)
+    for (let gi = 0; gi < gks.length; gi++) {
+      const grp = gks[gi]
+      sv[grp] = GRUPOS[grp].map(function(t) { return { name: t, pts: 0, gf: 0, gc: 0 } })
+    }
+    PARTIDOS_GRUPOS.forEach(function(m) {
+      const r = fuenteCompleta === 'preds' ? preds[m.id] : reales[m.id]
+      if (!r) return
+      const rl = r.l, rv = r.v
+      if (rl == null || rl === '' || rv == null || rv === '') return
+      const gl = parseInt(rl), gv = parseInt(rv)
+      const arr = sv[m.grupo]
+      if (!arr) return
+      let loc = null, vis = null
+      for (let ti = 0; ti < arr.length; ti++) {
+        if (arr[ti].name === m.local) loc = arr[ti]
+        if (arr[ti].name === m.vis) vis = arr[ti]
+      }
+      if (!loc || !vis) return
+      loc.gf += gl; loc.gc += gv; vis.gf += gv; vis.gc += gl
+      if (gl > gv) { loc.pts += 3 }
+      else if (gl < gv) { vis.pts += 3 }
+      else { loc.pts += 1; vis.pts += 1 }
+    })
+
     const terceros = []
-    const grpKeys = Object.keys(GRUPOS)
-    for (let gi = 0; gi < grpKeys.length; gi++) {
-      const grp = grpKeys[gi]
-      const arr = standingsVivo[grp]
+    for (let gi = 0; gi < gks.length; gi++) {
+      const grp = gks[gi]
+      const arr = sv[grp]
       if (!arr) continue
       const sorted = arr.slice().sort(function(a, b) {
         if (b.pts !== a.pts) return b.pts - a.pts
@@ -157,7 +199,7 @@ export default function Game() {
         if (b.gf !== a.gf) return b.gf - a.gf
         return a.name.localeCompare(b.name)
       })
-      if (sorted[2]) terceros.push({ name: sorted[2].name, pts: sorted[2].pts, gd: sorted[2].gf - sorted[2].gc, gf: sorted[2].gf, grp: grp })
+      if (sorted[2]) terceros.push({ name: sorted[2].name, pts: sorted[2].pts, gd: sorted[2].gf - sorted[2].gc, gf: sorted[2].gf })
     }
     terceros.sort(function(a, b) {
       if (b.pts !== a.pts) return b.pts - a.pts
