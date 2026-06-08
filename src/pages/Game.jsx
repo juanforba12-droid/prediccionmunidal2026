@@ -73,8 +73,10 @@ function resolverPlaceholder(placeholder, realClasif, standingsVivo) {
     if (!grpArr) return placeholder
     const sorted = grpArr.slice().sort(function(a, b) {
       if (b.pts !== a.pts) return b.pts - a.pts
-      if ((b.gf - b.gc) !== (a.gf - a.gc)) return (b.gf - b.gc) - (a.gf - a.gc)
-      return b.gf - a.gf
+      const gdB = b.gf - b.gc, gdA = a.gf - a.gc
+      if (gdB !== gdA) return gdB - gdA
+      if (b.gf !== a.gf) return b.gf - a.gf
+      return a.name.localeCompare(b.name)
     })
     return (sorted[pos] && sorted[pos].name) ? sorted[pos].name : placeholder
   }
@@ -126,7 +128,7 @@ export default function Game() {
   const [allPredClasif, setAllPredClasif] = useState({})
   const [tab, setTab]       = useState('quiniela')
   const [fase, setFase]     = useState('grupos')
-  const [jornada, setJornada] = useState('J1')
+  const [grupoFiltro, setGrupoFiltro] = useState('A')
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
   const [globalRanking, setGlobalRanking] = useState([])
@@ -382,7 +384,7 @@ export default function Game() {
   )
 
   const matchesToShow = fase === 'grupos'
-    ? PARTIDOS_GRUPOS.filter(function(m) { return m.jornada === jornada })
+    ? PARTIDOS_GRUPOS.filter(function(m) { return m.grupo === grupoFiltro })
     : PARTIDOS_ELIMINATORIAS.filter(function(m) { return m.fase === fase })
 
   const mc = (myPlayer && myPlayer.color) || '#e63946'
@@ -477,12 +479,11 @@ export default function Game() {
             </div>
 
             {fase === 'grupos' && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                {JORNADAS_GRUPOS.map(function(j) {
+              <div style={{ display: 'flex', gap: 4, marginBottom: 14, overflowX: 'auto', flexWrap: 'wrap' }}>
+                {Object.keys(GRUPOS).map(function(grp) {
                   return (
-                    <button key={j.key} onClick={function() { setJornada(j.key) }} style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 11, background: jornada === j.key ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)', color: jornada === j.key ? '#e8eaf0' : '#2a4060', borderBottom: jornada === j.key ? '2px solid ' + mc : '2px solid transparent' }}>
-                      <div>{j.label}</div>
-                      <div style={{ fontWeight: 400, fontSize: 9 }}>{j.dates}</div>
+                    <button key={grp} onClick={function() { setGrupoFiltro(grp) }} style={{ flexShrink: 0, minWidth: 36, padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, background: grupoFiltro === grp ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)', color: grupoFiltro === grp ? '#e8eaf0' : '#2a4060', borderBottom: grupoFiltro === grp ? '2px solid ' + mc : '2px solid transparent' }}>
+                      {grp}
                     </button>
                   )
                 })}
@@ -783,7 +784,13 @@ export default function Game() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {Object.entries(standings).map(function(entry, gi) {
                 const grp = entry[0], teams2 = entry[1]
-                const sorted2 = teams2.slice().sort(function(a, b) { return b.pts - a.pts || (b.gf - b.gc) - (a.gf - a.gc) || b.gf - a.gf })
+                const sorted2 = teams2.slice().sort(function(a, b) {
+                  if (b.pts !== a.pts) return b.pts - a.pts
+                  const gdB = b.gf - b.gc, gdA = a.gf - a.gc
+                  if (gdB !== gdA) return gdB - gdA
+                  if (b.gf !== a.gf) return b.gf - a.gf
+                  return a.name.localeCompare(b.name)
+                })
                 const gc = GC[gi % GC.length]
                 return (
                   <div key={grp} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
