@@ -803,68 +803,98 @@ export default function Game() {
         )}
 
         {tab === 'tabla' && (function() {
-          const standings = {}
-          const grpKeys2 = Object.keys(GRUPOS)
-          for (let gi = 0; gi < grpKeys2.length; gi++) {
-            const grp = grpKeys2[gi]
-            standings[grp] = GRUPOS[grp].map(function(t) { return { name: t, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, pts: 0 } })
-          }
-          PARTIDOS_GRUPOS.forEach(function(m) {
-            const r = reales[m.id]
-            if (!r) return
-            const rl2 = r.l, rv2 = r.v
-            if (rl2 == null || rl2 === '' || rv2 == null || rv2 === '') return
-            const gl2 = parseInt(rl2), gv2 = parseInt(rv2)
-            const grpArr2 = standings[m.grupo]
-            if (!grpArr2) return
-            let local2 = null, vis2 = null
-            for (let ti = 0; ti < grpArr2.length; ti++) {
-              if (grpArr2[ti].name === m.local) local2 = grpArr2[ti]
-              if (grpArr2[ti].name === m.vis) vis2 = grpArr2[ti]
+          // Función para calcular standings desde un mapa de resultados
+          function calcTabla(resultMap) {
+            const st = {}
+            const gks = Object.keys(GRUPOS)
+            for (let gi = 0; gi < gks.length; gi++) {
+              const grp = gks[gi]
+              st[grp] = GRUPOS[grp].map(function(t) { return { name: t, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, pts: 0 } })
             }
-            if (!local2 || !vis2) return
-            local2.pj++; vis2.pj++
-            local2.gf += gl2; local2.gc += gv2; vis2.gf += gv2; vis2.gc += gl2
-            if (gl2 > gv2) { local2.pg++; local2.pts += 3; vis2.pp++ }
-            else if (gl2 < gv2) { vis2.pg++; vis2.pts += 3; local2.pp++ }
-            else { local2.pe++; local2.pts++; vis2.pe++; vis2.pts++ }
+            PARTIDOS_GRUPOS.forEach(function(m) {
+              const r = resultMap[m.id]
+              if (!r) return
+              const rl = r.l, rv = r.v
+              if (rl == null || rl === '' || rv == null || rv === '') return
+              const gl = parseInt(rl), gv = parseInt(rv)
+              const arr = st[m.grupo]
+              if (!arr) return
+              let loc = null, vis = null
+              for (let ti = 0; ti < arr.length; ti++) {
+                if (arr[ti].name === m.local) loc = arr[ti]
+                if (arr[ti].name === m.vis) vis = arr[ti]
+              }
+              if (!loc || !vis) return
+              loc.pj++; vis.pj++
+              loc.gf += gl; loc.gc += gv; vis.gf += gv; vis.gc += gl
+              if (gl > gv) { loc.pg++; loc.pts += 3; vis.pp++ }
+              else if (gl < gv) { vis.pg++; vis.pts += 3; loc.pp++ }
+              else { loc.pe++; loc.pts++; vis.pe++; vis.pts++ }
+            })
+            return st
+          }
+
+          // Tabla del jugador: usa sus predicciones
+          const myPredMap = {}
+          PARTIDOS_GRUPOS.forEach(function(m) {
+            const pr = preds[m.id]
+            if (pr && pr.l !== '' && pr.l != null && pr.v !== '' && pr.v != null) {
+              myPredMap[m.id] = { l: pr.l, v: pr.v }
+            }
           })
+          const tablaJugador = calcTabla(myPredMap)
+          // Tabla real: usa resultados del admin
+          const tablaReal = calcTabla(reales)
+
           const GC = ['#e63946','#f4a261','#2a9d8f','#457b9d','#9b5de5','#e9c46a','#06d6a0','#ef476f','#118ab2','#ffd166','#e63946','#2a9d8f']
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {Object.entries(standings).map(function(entry, gi) {
-                const grp = entry[0], teams2 = entry[1]
-                const sorted2 = teams2.slice().sort(function(a, b) {
-                  if (b.pts !== a.pts) return b.pts - a.pts
-                  const gdB = b.gf - b.gc, gdA = a.gf - a.gc
-                  if (gdB !== gdA) return gdB - gdA
-                  if (b.gf !== a.gf) return b.gf - a.gf
-                  return a.name.localeCompare(b.name)
-                })
-                const gc = GC[gi % GC.length]
-                return (
-                  <div key={grp} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-                    <div style={{ background: gc + '22', borderBottom: '1px solid ' + gc + '44', padding: '10px 16px', display: 'flex', alignItems: 'center' }}>
-                      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: gc }}>GRUPO {grp}</div>
-                      <div style={{ fontSize: 11, color: '#2a4060', marginLeft: 'auto' }}>PJ PG PE PP GF GC Pts</div>
-                    </div>
-                    {sorted2.map(function(t, ti) {
-                      const vals = [t.pj, t.pg, t.pe, t.pp, t.gf, t.gc, t.pts]
-                      return (
-                        <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', background: ti < 2 ? gc + '08' : 'transparent' }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: ti === 0 ? '#ffd700' : ti === 1 ? '#c0c0c0' : '#2a4060', width: 16, textAlign: 'center' }}>
-                            {ti === 0 ? '🥇' : ti === 1 ? '🥈' : ti === 2 ? '🥉' : (ti + 1) + ''}
-                          </div>
-                          <div style={{ flex: 1, fontSize: 13, fontWeight: ti < 2 ? 700 : 400, color: ti < 2 ? '#e8eaf0' : '#8a9ab0' }}>{t.name}</div>
-                          {vals.map(function(v, i) {
-                            return <div key={i} style={{ width: 22, textAlign: 'center', fontSize: 12, fontWeight: i === 6 ? 700 : 400, color: i === 6 ? (t.pts > 0 ? gc : '#2a4060') : '#4a6080' }}>{v}</div>
-                          })}
+
+          function renderTabla(standings, titulo, color) {
+            return (
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ fontSize: 12, color: color, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12, paddingLeft: 8, borderLeft: '3px solid ' + color }}>{titulo}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {Object.entries(standings).map(function(entry, gi) {
+                    const grp = entry[0], teams = entry[1]
+                    const sorted = teams.slice().sort(function(a, b) {
+                      if (b.pts !== a.pts) return b.pts - a.pts
+                      const gdB = b.gf - b.gc, gdA = a.gf - a.gc
+                      if (gdB !== gdA) return gdB - gdA
+                      if (b.gf !== a.gf) return b.gf - a.gf
+                      return a.name.localeCompare(b.name)
+                    })
+                    const gc = GC[gi % GC.length]
+                    return (
+                      <div key={grp} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+                        <div style={{ background: gc + '22', borderBottom: '1px solid ' + gc + '44', padding: '10px 16px', display: 'flex', alignItems: 'center' }}>
+                          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: gc }}>GRUPO {grp}</div>
+                          <div style={{ fontSize: 11, color: '#2a4060', marginLeft: 'auto' }}>PJ PG PE PP GF GC Pts</div>
                         </div>
-                      )
-                    })}
-                  </div>
-                )
-              })}
+                        {sorted.map(function(t, ti) {
+                          const vals = [t.pj, t.pg, t.pe, t.pp, t.gf, t.gc, t.pts]
+                          return (
+                            <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', background: ti < 2 ? gc + '08' : 'transparent' }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: ti === 0 ? '#ffd700' : ti === 1 ? '#c0c0c0' : '#2a4060', width: 16, textAlign: 'center' }}>
+                                {ti === 0 ? '🥇' : ti === 1 ? '🥈' : ti === 2 ? '🥉' : (ti + 1) + ''}
+                              </div>
+                              <div style={{ flex: 1, fontSize: 13, fontWeight: ti < 2 ? 700 : 400, color: ti < 2 ? '#e8eaf0' : '#8a9ab0' }}>{t.name}</div>
+                              {vals.map(function(v, i) {
+                                return <div key={i} style={{ width: 22, textAlign: 'center', fontSize: 12, fontWeight: i === 6 ? 700 : 400, color: i === 6 ? (t.pts > 0 ? gc : '#2a4060') : '#4a6080' }}>{v}</div>
+                              })}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          }
+
+          return (
+            <div>
+              {renderTabla(tablaJugador, 'Tu prediccion', mc)}
+              {isCreator && renderTabla(tablaReal, 'Resultados reales', '#2a9d8f')}
             </div>
           )
         })()}
