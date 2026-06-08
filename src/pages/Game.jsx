@@ -265,15 +265,22 @@ export default function Game() {
 
   async function saveReal(matchId, side, val) {
     const clean = val.replace(/\D/g, '').slice(0, 2)
-    // Actualizar estado local inmediatamente para que standingsVivo se recalcule
-    const newReales = Object.assign({}, reales, { [matchId]: Object.assign({}, reales[matchId] || {}, { [side]: clean }) })
-    setReales(newReales)
-    const cur = newReales[matchId]
-    await supabase.from('results').upsert({
-      group_code: code, match_id: matchId,
-      goals_local: cur.l !== '' && cur.l != null ? parseInt(cur.l) : null,
-      goals_vis: cur.v !== '' && cur.v != null ? parseInt(cur.v) : null,
-    }, { onConflict: 'group_code,match_id' })
+    // Usar setReales con función para siempre tener el estado más reciente
+    let savedCur = null
+    setReales(function(prev) {
+      const updated = Object.assign({}, prev[matchId] || {}, { [side]: clean })
+      savedCur = updated
+      return Object.assign({}, prev, { [matchId]: updated })
+    })
+    // Dar tiempo a React para actualizar, luego guardar en Supabase
+    setTimeout(async function() {
+      const cur = savedCur || {}
+      await supabase.from('results').upsert({
+        group_code: code, match_id: matchId,
+        goals_local: cur.l !== '' && cur.l != null ? parseInt(cur.l) : null,
+        goals_vis: cur.v !== '' && cur.v != null ? parseInt(cur.v) : null,
+      }, { onConflict: 'group_code,match_id' })
+    }, 0)
   }
 
   const clasifTimer = useRef(null)
