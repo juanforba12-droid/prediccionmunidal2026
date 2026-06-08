@@ -142,6 +142,32 @@ export default function Game() {
 
   const standingsVivo = calcStandingsFromReales(reales)
 
+  // Calcular los 8 mejores terceros en tiempo real desde standingsVivo
+  const mejoresTerceros = (function() {
+    const terceros = []
+    const grpKeys = Object.keys(GRUPOS)
+    for (let gi = 0; gi < grpKeys.length; gi++) {
+      const grp = grpKeys[gi]
+      const arr = standingsVivo[grp]
+      if (!arr) continue
+      const sorted = arr.slice().sort(function(a, b) {
+        if (b.pts !== a.pts) return b.pts - a.pts
+        const gdB = b.gf - b.gc, gdA = a.gf - a.gc
+        if (gdB !== gdA) return gdB - gdA
+        if (b.gf !== a.gf) return b.gf - a.gf
+        return a.name.localeCompare(b.name)
+      })
+      if (sorted[2]) terceros.push({ name: sorted[2].name, pts: sorted[2].pts, gd: sorted[2].gf - sorted[2].gc, gf: sorted[2].gf, grp: grp })
+    }
+    terceros.sort(function(a, b) {
+      if (b.pts !== a.pts) return b.pts - a.pts
+      if (b.gd !== a.gd) return b.gd - a.gd
+      if (b.gf !== a.gf) return b.gf - a.gf
+      return a.name.localeCompare(b.name)
+    })
+    return terceros.slice(0, 8).map(function(t) { return t.name })
+  })()
+
   useEffect(() => {
     const me = localStorage.getItem('player_' + code)
     if (!me) { nav('/unirse/' + code); return }
@@ -508,9 +534,13 @@ export default function Game() {
               {matchesToShow.map(function(m) {
                 const isElim = ELIM_FASES.indexOf(m.fase) >= 0
                 const isTerceroFase = m.fase === 'tercero'
-                const isTerceroPlaceholder = m.tercero && m.vis === '3?'
+                const isTerceroPlaceholder = m.tercero && m.vis === '3?' && !mejoresTerceros[DISEC_IDS.indexOf(m.id) - 8]
                 const localReal = resolverPlaceholder(m.local, realClasif, standingsVivo)
-                const visReal = resolverPlaceholder(m.vis, realClasif, standingsVivo)
+                // Para cruces vs terceros, calcular el mejor tercero por posición
+                const visRealBase = resolverPlaceholder(m.vis, realClasif, standingsVivo)
+                const visReal = (m.tercero && m.vis === '3?')
+                  ? (mejoresTerceros[DISEC_IDS.indexOf(m.id) - 8] || '3o pendiente')
+                  : visRealBase
                 const tieneEquiposReales = !esPlaceholder(localReal) && !esPlaceholder(visReal)
                 const pl = (preds[m.id] && preds[m.id].l != null) ? preds[m.id].l : ''
                 const pv = (preds[m.id] && preds[m.id].v != null) ? preds[m.id].v : ''
@@ -549,7 +579,7 @@ export default function Game() {
                       ) : (
                         <div style={{ fontSize: 16, color: '#1a2a3a', fontWeight: 900 }}>vs</div>
                       )}
-                      <div style={{ flex: 1, textAlign: 'left', fontSize: 13, fontWeight: 700 }}>{visReal === '3?' ? '3o pendiente' : visReal}</div>
+                      <div style={{ flex: 1, textAlign: 'left', fontSize: 13, fontWeight: 700 }}>{visReal}</div>
                     </div>
 
                     {isElim && !isTerceroFase && !isTerceroPlaceholder && (
