@@ -17,6 +17,9 @@ import AdivinaIndividual from './pages/AdivinaIndividual.jsx'
 import AdivinaOnline from './pages/AdivinaOnline.jsx'
 import Ranking from './pages/Ranking.jsx'
 import Marcador from './pages/Marcador.jsx'
+import EstimonHome from './pages/EstimonHome.jsx'
+import EstimonIndividual from './pages/EstimonIndividual.jsx'
+import EstimonOnline from './pages/EstimonOnline.jsx'
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(undefined)
@@ -52,6 +55,9 @@ export default function App() {
       <Route path="/adivina" element={<AdivinaHome />} />
       <Route path="/adivina/individual" element={<AdivinaIndividual />} />
       <Route path="/adivina/online" element={<AdivinaOnline />} />
+      <Route path="/estimon" element={<EstimonHome />} />
+      <Route path="/estimon/individual" element={<EstimonIndividual />} />
+      <Route path="/estimon/online/:id" element={<EstimonOnline />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
