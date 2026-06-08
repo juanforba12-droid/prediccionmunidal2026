@@ -172,6 +172,30 @@ export default function Home() {
         />
       </div>
 
+      {/* ESTIMON */}
+      <div style={{ width:'100%', maxWidth:540, marginTop:12 }}>
+        <button onClick={() => nav('/estimon')} style={{
+          width:'100%',
+          background:'linear-gradient(135deg,rgba(0,229,255,0.06) 0%,rgba(105,240,174,0.06) 100%)',
+          border:'1px solid rgba(0,229,255,0.2)',
+          borderRadius:20, padding:'18px 20px', cursor:'pointer', textAlign:'left', outline:'none',
+          display:'flex', alignItems:'center', gap:16,
+          transition:'transform 0.15s, border-color 0.15s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.transform='scale(1.01)'; e.currentTarget.style.borderColor='rgba(0,229,255,0.5)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.borderColor='rgba(0,229,255,0.2)' }}
+        >
+          <div style={{ width:44, height:44, borderRadius:12, background:'rgba(0,229,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>🔢</div>
+          <div style={{ flex:1 }}>
+            <div style={{ color:'#00e5ff', fontWeight:800, fontSize:16, letterSpacing:1 }}>ESTIMON</div>
+            <div style={{ color:'rgba(255,255,255,0.4)', fontSize:12 }}>Adivina el numero exacto · Gana puntos</div>
+          </div>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
+            {['Individual','Online','2000+'].map(t => <span key={t} style={{ fontSize:10, color:'#00e5ff', background:'rgba(0,229,255,0.1)', padding:'2px 8px', borderRadius:20 }}>{t}</span>)}
+          </div>
+        </button>
+      </div>
+
       {/* EL MARCADOR */}
       <div style={{ width:'100%', maxWidth:540, marginTop:12 }}>
         <button onClick={() => nav('/marcador')} style={{
