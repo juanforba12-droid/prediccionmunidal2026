@@ -90,7 +90,7 @@ export const PARTIDOS_GRUPOS = [
 
 // Puntos por equipo clasificado acertado en eliminatorias
 export const PTS_CLASIFICADO = {
-  dieciseisavos: 3,
+  dieciseisavos: 5,
   octavos:       4,
   cuartos:       5,
   semis:         6,
