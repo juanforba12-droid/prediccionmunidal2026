@@ -83,23 +83,38 @@ export default function EstimonOnline() {
 
   useEffect(function() {
     if (!sesion) return
-    if (sesion.estado === 'jugando' && !yaRespondio) {
+
+    if (sesion.estado === 'jugando') {
       const ahora = Date.now()
       const inicio = sesion.tiempo_inicio || ahora
       const transcurrido = Math.floor((ahora - inicio) / 1000)
       const restante = Math.max(0, TIEMPO_LIMITE - transcurrido)
+
+      // Si el tiempo ya se acabó en el servidor → forzar resultados (cualquier cliente)
+      if (restante <= 0) {
+        supabase.from('estimon_sessions').update({ estado: 'resultados' }).eq('id', id).eq('estado', 'jugando')
+        return
+      }
+
       setTiempo(restante)
       clearInterval(timerRef.current)
       timerRef.current = setInterval(function() {
         setTiempo(function(t) {
           if (t <= 1) {
             clearInterval(timerRef.current)
+            // Tiempo agotado → cualquier cliente fuerza el avance
+            supabase.from('estimon_sessions').update({ estado: 'resultados' }).eq('id', id).eq('estado', 'jugando')
             return 0
           }
           return t - 1
         })
       }, 1000)
+
+      setResultados(null)
+      setYaRespondio(!!((sesion.respuestas || {})[miJugador && miJugador.id]))
+      if (inputRef.current && !yaRespondio) inputRef.current.focus()
     }
+
     if (sesion.estado === 'resultados') {
       clearInterval(timerRef.current)
       const pregunta = preguntas.find(function(p) { return p.id === sesion.pregunta_id }) || preguntas[sesion.pregunta_idx || 0]
@@ -107,11 +122,6 @@ export default function EstimonOnline() {
         const pts = calcPuntosMultijugador(sesion.respuestas || {}, pregunta.respuesta, sesion.jugadores || [])
         setResultados({ pregunta: pregunta, respuestas: sesion.respuestas || {}, pts: pts })
       }
-    }
-    if (sesion.estado === 'jugando') {
-      setResultados(null)
-      setYaRespondio(!!((sesion.respuestas || {})[miJugador && miJugador.id]))
-      if (inputRef.current) inputRef.current.focus()
     }
   }, [sesion])
 
@@ -175,6 +185,22 @@ export default function EstimonOnline() {
     setResultados(null)
   }
 
+  function abandonarPartida() {
+    const saved = JSON.parse(localStorage.getItem('estimon_sesiones') || '[]')
+    localStorage.setItem('estimon_sesiones', JSON.stringify(saved.filter(function(s) { return s.id !== id })))
+    localStorage.removeItem('estimon_player_' + id)
+    if (esCreadorLocal()) {
+      supabase.from('estimon_sessions').delete().eq('id', id)
+    }
+    nav('/estimon')
+  }
+
+  function esCreadorLocal() {
+    const saved = JSON.parse(localStorage.getItem('estimon_sesiones') || '[]')
+    const s = saved.find(function(s) { return s.id === id })
+    return s && s.esCreador
+  }
+
   if (!sesion || !miJugador) return (
     <div style={{ minHeight: '100vh', background: '#080a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00e5ff', fontFamily: 'sans-serif' }}>Cargando...</div>
   )
@@ -198,7 +224,10 @@ export default function EstimonOnline() {
       <div style={S.bg} />
 
       <div style={{ width: '100%', maxWidth: 480, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, position: 'relative', zIndex: 1 }}>
-        <button onClick={function() { nav('/estimon') }} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'rgba(255,255,255,0.5)', padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>Salir</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={function() { nav('/estimon') }} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'rgba(255,255,255,0.5)', padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>Menu</button>
+          <button onClick={abandonarPartida} style={{ background: 'none', border: '1px solid rgba(255,64,129,0.3)', borderRadius: 8, color: '#ff4081', padding: '6px 12px', cursor: 'pointer', fontSize: 12 }}>Abandonar</button>
+        </div>
         <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: '#00e5ff', letterSpacing: 3 }}>ESTIMON</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)', padding: '4px 10px', borderRadius: 20 }}>
           Sala: <strong style={{ color: '#e8eaf0' }}>{id}</strong>
@@ -270,8 +299,8 @@ export default function EstimonOnline() {
                 <div style={{ fontSize: 16, color: '#69f0ae', fontWeight: 700, marginBottom: 4 }}>Respuesta enviada!</div>
                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Esperando a los demas... ({numRespondieron}/{jugadores.length})</div>
                 {esCreador && numRespondieron > 0 && (
-                  <button onClick={verResultados} style={{ marginTop: 14, padding: '10px 24px', borderRadius: 10, border: '1px solid rgba(255,215,0,0.3)', background: 'rgba(255,215,0,0.06)', color: '#ffd700', fontFamily: "'DM Sans', sans-serif", fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
-                    Ver resultados ya
+                  <button onClick={verResultados} style={{ marginTop: 14, padding: '8px 20px', borderRadius: 10, border: '1px solid rgba(255,215,0,0.3)', background: 'rgba(255,215,0,0.06)', color: '#ffd700', fontFamily: "'DM Sans', sans-serif", fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                    Forzar resultados ({numRespondieron}/{jugadores.length})
                   </button>
                 )}
               </div>
