@@ -234,7 +234,19 @@ export default function Game() {
           if (er.clasif_elim) setRealClasif(er.clasif_elim)
         }
       }
-      if (plRes.data) setPlayers(plRes.data)
+      if (plRes.data) {
+        setPlayers(plRes.data)
+        // Actualizar myPlayer con el dato real de Supabase (el id puede diferir del localStorage)
+        const meLocal = JSON.parse(localStorage.getItem('player_' + code) || '{}')
+        const meReal = plRes.data.find(function(pl) {
+          return pl.id === meLocal.id || pl.name === meLocal.name
+        })
+        if (meReal) {
+          // Actualizar localStorage con el id real de Supabase
+          localStorage.setItem('player_' + code, JSON.stringify(meReal))
+          setMyPlayer(meReal)
+        }
+      }
       const rMap = {}
       if (realesRes.data) {
         realesRes.data.forEach(function(r) {
