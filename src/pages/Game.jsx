@@ -142,6 +142,9 @@ export default function Game() {
 
   const standingsVivo = calcStandingsFromReales(reales)
 
+  // Standings según las predicciones del jugador (para resolver 1A, 2B, etc. en su vista)
+  const standingsJugador = calcStandingsFromReales(preds)
+
   // Calcular los 8 mejores terceros — solo cuando todos los partidos de grupos tienen prediccion
   const mejoresTerceros = (function() {
     // Para el jugador: usar sus predicciones; para el admin/resultados reales: usar reales
@@ -630,9 +633,9 @@ export default function Game() {
                 const isElim = ELIM_FASES.indexOf(m.fase) >= 0
                 const isTerceroFase = m.fase === 'tercero'
                 const isTerceroPlaceholder = m.tercero && m.vis === '3?' && !mejoresTerceros[DISEC_IDS.indexOf(m.id) - 8]
-                const localReal = resolverPlaceholder(m.local, clasifParaVista, standingsVivo)
+                const localReal = resolverPlaceholder(m.local, clasifParaVista, standingsJugador)
                 // Para cruces vs terceros, calcular el mejor tercero por posición
-                const visRealBase = resolverPlaceholder(m.vis, clasifParaVista, standingsVivo)
+                const visRealBase = resolverPlaceholder(m.vis, clasifParaVista, standingsJugador)
                 const visReal = (m.tercero && m.vis === '3?')
                   ? (mejoresTerceros[DISEC_IDS.indexOf(m.id) - 8] || '3o pendiente')
                   : visRealBase
