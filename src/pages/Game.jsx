@@ -293,7 +293,17 @@ export default function Game() {
         })
       }
       setAllPreds(apMap)
-      setPreds(myMap)
+      // No pisar preds locales con datos de Supabase (evita reset mientras se escribe)
+      setPreds(function(prev) {
+        const merged = Object.assign({}, myMap)
+        Object.keys(prev).forEach(function(mid) {
+          if (!merged[mid]) { merged[mid] = prev[mid]; return }
+          // Si el local tiene valor y Supabase no, conservar local
+          if ((prev[mid].l !== '' && prev[mid].l != null) && (merged[mid].l === '' || merged[mid].l == null)) merged[mid].l = prev[mid].l
+          if ((prev[mid].v !== '' && prev[mid].v != null) && (merged[mid].v === '' || merged[mid].v == null)) merged[mid].v = prev[mid].v
+        })
+        return merged
+      })
       const allExtrasMap = {}
       if (plRes.data) {
         plRes.data.forEach(function(pl) {
@@ -319,20 +329,36 @@ export default function Game() {
   }, [code, loadAll])
 
   const saveTimer = useRef({})
+  async function flushPred(matchId, cur) {
+    if (!myPlayer || !myPlayer.id) return
+    await supabase.from('predictions').upsert({
+      group_code: code, player_id: myPlayer.id, match_id: matchId,
+      goals_local: cur.l !== '' && cur.l != null ? parseInt(cur.l) : null,
+      goals_vis: cur.v !== '' && cur.v != null ? parseInt(cur.v) : null,
+    }, { onConflict: 'group_code,player_id,match_id' })
+  }
   function savePred(matchId, side, val) {
     if (locked) return
     const clean = val.replace(/\D/g, '').slice(0, 2)
-    setPreds(function(p) { return Object.assign({}, p, { [matchId]: Object.assign({}, p[matchId] || {}, { [side]: clean }) }) })
+    let cur = null
+    setPreds(function(p) {
+      const updated = Object.assign({}, p[matchId] || {}, { [side]: clean })
+      cur = updated
+      return Object.assign({}, p, { [matchId]: updated })
+    })
     clearTimeout(saveTimer.current[matchId])
-    saveTimer.current[matchId] = setTimeout(async function() {
-      if (!myPlayer || !myPlayer.id) return
-      const cur = Object.assign({}, preds[matchId] || {}, { [side]: clean })
-      await supabase.from('predictions').upsert({
-        group_code: code, player_id: myPlayer.id, match_id: matchId,
-        goals_local: cur.l !== '' ? parseInt(cur.l) : null,
-        goals_vis: cur.v !== '' ? parseInt(cur.v) : null,
-      }, { onConflict: 'group_code,player_id,match_id' })
-    }, 600)
+    saveTimer.current[matchId] = setTimeout(function() {
+      if (cur) flushPred(matchId, cur)
+    }, 200)
+  }
+  function savePredBlur(matchId) {
+    // Guardar inmediatamente al perder el foco
+    clearTimeout(saveTimer.current[matchId])
+    setPreds(function(p) {
+      const cur = p[matchId]
+      if (cur) flushPred(matchId, cur)
+      return p
+    })
   }
 
   async function saveReal(matchId, side, val) {
@@ -568,8 +594,9 @@ export default function Game() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 12px' }}>
+      <div style={{ maxWidth: 980, margin: '0 auto', padding: '0 12px', display: 'flex', gap: 20, alignItems: 'flex-start' }}>
 
+        <div style={{ flex: 1, minWidth: 0 }}>
         {locked && (
           <div style={{ margin: '12px 0', padding: '10px 16px', background: 'rgba(244,162,97,0.08)', border: '1px solid rgba(244,162,97,0.25)', borderRadius: 12, fontSize: 12, color: '#f4a261', textAlign: 'center' }}>
             Predicciones cerradas desde 1h antes del primer partido.
@@ -629,11 +656,30 @@ export default function Game() {
               </div>
             )}
 
-            <div style={{ marginBottom: 12, padding: '8px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, fontSize: 11, color: '#2a6070' }}>
-              {fase === 'grupos' ? 'Resultado exacto: 5 pts | Resultado correcto: 1 pt'
-                : fase === 'tercero' ? '3er puesto - 4 pts'
-                : (TODAS_LAS_FASES.find(function(f) { return f.key === fase }) || {}).label + ' - Acierta quien pasa: ' + (PTS_CLASIFICADO[fase] || 0) + ' pts'}
-            </div>
+            {fase === 'grupos' && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1, padding: '10px 14px', background: 'rgba(42,157,143,0.1)', border: '1px solid rgba(42,157,143,0.25)', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#2a9d8f', lineHeight: 1 }}>5 pts</div>
+                  <div style={{ fontSize: 11, color: '#2a9d8f', marginTop: 2 }}>Resultado exacto</div>
+                </div>
+                <div style={{ flex: 1, padding: '10px 14px', background: 'rgba(244,162,97,0.1)', border: '1px solid rgba(244,162,97,0.25)', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#f4a261', lineHeight: 1 }}>1 pt</div>
+                  <div style={{ fontSize: 11, color: '#f4a261', marginTop: 2 }}>Resultado correcto</div>
+                </div>
+                <div style={{ flex: 1, padding: '10px 14px', background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.2)', borderRadius: 10, textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: '#e63946', lineHeight: 1 }}>0 pts</div>
+                  <div style={{ fontSize: 11, color: '#e63946', marginTop: 2 }}>Incorrecto</div>
+                </div>
+              </div>
+            )}
+            {fase !== 'grupos' && (
+              <div style={{ padding: '10px 14px', background: mc + '12', border: '1px solid ' + mc + '33', borderRadius: 10, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: '#c8d8ea' }}>
+                  {fase === 'tercero' ? '3er puesto — acierta quien gana' : 'Acierta quien pasa a ' + (TODAS_LAS_FASES.find(function(f) { return f.key === fase }) || {}).label}
+                </span>
+                <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: mc }}>{PTS_CLASIFICADO[fase] || 0} pts</span>
+              </div>
+            )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>
               <span style={{ fontSize: 11, color: '#2a4060' }}>Partidos jugados</span>
@@ -683,10 +729,10 @@ export default function Game() {
                       <div style={{ flex: 1, textAlign: 'right', fontSize: 13, fontWeight: 700 }}>{localReal}</div>
                       {!isElim ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                          <input type="text" inputMode="numeric" maxLength={2} value={pl} onChange={function(e) { savePred(m.id, 'l', e.target.value) }} placeholder="-" readOnly={locked}
+                          <input type="text" inputMode="numeric" maxLength={2} value={pl} onChange={function(e) { savePred(m.id, 'l', e.target.value) }} onBlur={function() { savePredBlur(m.id) }} placeholder="-" readOnly={locked}
                             style={{ width: 40, height: 40, textAlign: 'center', fontSize: 20, fontWeight: 900, borderRadius: 8, border: '2px solid ' + (pl !== '' ? mc : locked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'), background: locked ? 'rgba(255,255,255,0.04)' : mc + '18', color: locked ? '#3a5070' : mc, cursor: locked ? 'not-allowed' : 'text', outline: 'none' }} />
                           <span style={{ color: '#1a2a3a', fontSize: 18, fontWeight: 900 }}>:</span>
-                          <input type="text" inputMode="numeric" maxLength={2} value={pv} onChange={function(e) { savePred(m.id, 'v', e.target.value) }} placeholder="-" readOnly={locked}
+                          <input type="text" inputMode="numeric" maxLength={2} value={pv} onChange={function(e) { savePred(m.id, 'v', e.target.value) }} onBlur={function() { savePredBlur(m.id) }} placeholder="-" readOnly={locked}
                             style={{ width: 40, height: 40, textAlign: 'center', fontSize: 20, fontWeight: 900, borderRadius: 8, border: '2px solid ' + (pv !== '' ? mc : locked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'), background: locked ? 'rgba(255,255,255,0.04)' : mc + '18', color: locked ? '#3a5070' : mc, cursor: locked ? 'not-allowed' : 'text', outline: 'none' }} />
                         </div>
                       ) : (
@@ -1150,6 +1196,57 @@ export default function Game() {
             </div>
           </div>
         )}
+
+        </div>
+
+        {/* PANEL LATERAL DE PUNTUACION */}
+        <div style={{ width: 220, flexShrink: 0, position: 'sticky', top: 80 }}>
+          <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '14px 16px' }}>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: mc, letterSpacing: 2, marginBottom: 12 }}>Como puntua</div>
+
+            <div style={{ fontSize: 11, color: '#2a6070', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>GRUPOS</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontSize: 12, color: '#c8d8ea' }}>Exacto</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#2a9d8f' }}>5 pts</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontSize: 12, color: '#c8d8ea' }}>Resultado correcto</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#f4a261' }}>1 pt</span>
+            </div>
+
+            <div style={{ fontSize: 11, color: '#2a6070', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>ELIMINATORIAS</div>
+            {[['1/16',5,'#9b5de5'],['1/8',4,'#457b9d'],['1/4',5,'#f4a261'],['Semis',6,'#e9c46a'],['3er puesto',4,'#2a9d8f'],['Final',7,'#ffd700']].map(function(item) {
+              return (
+                <div key={item[0]} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ fontSize: 12, color: '#c8d8ea' }}>{item[0]}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: item[2] }}>{item[1]} pts</span>
+                </div>
+              )
+            })}
+
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+            <div style={{ fontSize: 11, color: '#2a6070', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>EXTRAS</div>
+            {['Balon de Oro','Bota de Oro','Guante de Oro','Mejor joven'].map(function(item) {
+              return (
+                <div key={item} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ fontSize: 11, color: '#c8d8ea' }}>{item}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#e63946' }}>10 pts</span>
+                </div>
+              )
+            })}
+
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+            <div style={{ fontSize: 11, color: '#2a6070', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>GRUPOS CLASIF.</div>
+            {[['1º de grupo','#ffd700',2],['2º de grupo','#c0c0c0',1],['Mejor tercero','#cd7f32',1]].map(function(item) {
+              return (
+                <div key={item[0]} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <span style={{ fontSize: 12, color: '#c8d8ea' }}>{item[0]}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: item[1] }}>{item[2]} pt{item[2] > 1 ? 's' : ''}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
 
       </div>
     </div>
