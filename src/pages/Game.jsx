@@ -450,7 +450,15 @@ export default function Game() {
   const ranking = players.slice().map(function(p) { return Object.assign({}, p, computeScore(p.id)) }).sort(function(a, b) { return b.pts - a.pts || b.exact - a.exact })
   const myScore = myPlayer ? computeScore(myPlayer.id) : { pts: 0, exact: 0, result: 0, clasifAciertos: 0 }
   const myRank = ranking.findIndex(function(p) { return p.id === (myPlayer && myPlayer.id) }) + 1
-  const completed = ALL_MATCHES.filter(function(m) { return reales[m.id] && reales[m.id].l !== '' && reales[m.id].l != null }).length
+  // Partidos con prediccion del jugador (grupos) o resultado real (eliminatorias)
+  const completedPreds = PARTIDOS_GRUPOS.filter(function(m) {
+    const pr = preds[m.id]
+    return pr && pr.l !== '' && pr.l != null && pr.v !== '' && pr.v != null
+  }).length
+  const completedElim = PARTIDOS_ELIMINATORIAS.filter(function(m) {
+    return predClasif[m.id] && predClasif[m.id] !== ''
+  }).length
+  const completed = completedPreds + completedElim
 
   function handleCopy() {
     if (navigator.clipboard) navigator.clipboard.writeText(shareUrl).catch(function() {})
@@ -470,6 +478,14 @@ export default function Game() {
       <div style={{ color: '#3a5070' }}>Cargando...</div>
     </div>
   )
+
+  // Para la vista del jugador: combinar predClasif (mis predicciones) con realClasif (resultados reales)
+  // Las predicciones del jugador tienen prioridad sobre los resultados reales
+  const clasifParaVista = {}
+  // Primero poner los reales como base
+  Object.keys(realClasif).forEach(function(k) { clasifParaVista[k] = realClasif[k] })
+  // Luego sobreescribir con las predicciones del jugador donde existan
+  Object.keys(predClasif).forEach(function(k) { if (predClasif[k]) clasifParaVista[k] = predClasif[k] })
 
   const matchesToShow = fase === 'grupos'
     ? PARTIDOS_GRUPOS.filter(function(m) { return m.grupo === grupoFiltro })
@@ -589,7 +605,7 @@ export default function Game() {
               <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#1a2a3a', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: (completed / ALL_MATCHES.length * 100) + '%', background: 'linear-gradient(90deg,' + mc + ',' + mc + '88)', borderRadius: 2 }} />
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700 }}>{completed + '/' + ALL_MATCHES.length}</span>
+              <span style={{ fontSize: 11, fontWeight: 700 }}>{completedPreds + '/72'}</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -597,9 +613,9 @@ export default function Game() {
                 const isElim = ELIM_FASES.indexOf(m.fase) >= 0
                 const isTerceroFase = m.fase === 'tercero'
                 const isTerceroPlaceholder = m.tercero && m.vis === '3?' && !mejoresTerceros[DISEC_IDS.indexOf(m.id) - 8]
-                const localReal = resolverPlaceholder(m.local, realClasif, standingsVivo)
+                const localReal = resolverPlaceholder(m.local, clasifParaVista, standingsVivo)
                 // Para cruces vs terceros, calcular el mejor tercero por posición
-                const visRealBase = resolverPlaceholder(m.vis, realClasif, standingsVivo)
+                const visRealBase = resolverPlaceholder(m.vis, clasifParaVista, standingsVivo)
                 const visReal = (m.tercero && m.vis === '3?')
                   ? (mejoresTerceros[DISEC_IDS.indexOf(m.id) - 8] || '3o pendiente')
                   : visRealBase
