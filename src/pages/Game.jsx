@@ -350,7 +350,7 @@ export default function Game() {
       clearTimeout(clasifTimer.current)
       clasifTimer.current = setTimeout(async function() {
         if (!myPlayer || !myPlayer.id) return
-        await supabase.from('players').update({ extras_pred: newExtras }).eq('id', myPlayer.id)
+        await supabase.from('players').update({ extras_pred: newExtras }).eq('group_code', code).eq('name', myPlayer.name)
       }, 600)
       return newExtras
     })
@@ -372,7 +372,7 @@ export default function Game() {
     clearTimeout(extrasTimer.current)
     extrasTimer.current = setTimeout(async function() {
       if (!myPlayer || !myPlayer.id) return
-      await supabase.from('players').update({ extras_pred: newExtras }).eq('id', myPlayer.id)
+      await supabase.from('players').update({ extras_pred: newExtras }).eq('group_code', code).eq('name', myPlayer.name)
     }, 800)
   }
 
