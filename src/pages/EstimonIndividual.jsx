@@ -13,14 +13,26 @@ function getAuthId() {
   return null
 }
 
-function calcPuntosPorError(respuesta, real) {
+function calcPuntosPorError(respuesta, real, unidad) {
+  if (real == null) return 0
+  // Para años: diferencia absoluta en años
+  if (unidad === 'año') {
+    const diff = Math.abs(respuesta - real)
+    if (diff === 0) return 5
+    if (diff <= 2) return 4
+    if (diff <= 5) return 3
+    if (diff <= 10) return 2
+    if (diff <= 20) return 1
+    return 0
+  }
+  // Para el resto: porcentaje de error
   if (!real || real === 0) return 0
   const err = Math.abs(respuesta - real) / Math.abs(real) * 100
   if (err <= 1) return 5
-  if (err <= 2) return 4
-  if (err <= 3) return 3
-  if (err <= 4) return 2
-  if (err <= 5) return 1
+  if (err <= 3) return 4
+  if (err <= 7) return 3
+  if (err <= 15) return 2
+  if (err <= 25) return 1
   return 0
 }
 
@@ -82,7 +94,7 @@ export default function EstimonIndividual() {
     clearInterval(timerRef.current)
     setRespondido(true)
     const val = parseFloat(input.replace(',', '.'))
-    const pts = calcPuntosPorError(val, pregunta.respuesta)
+    const pts = calcPuntosPorError(val, pregunta.respuesta, pregunta.unidad)
     setPtsRonda(pts)
     const newTotal = ptsTotal + pts
     setPtsTotal(newTotal)
@@ -190,7 +202,11 @@ export default function EstimonIndividual() {
                     </div>
                     {!resultado.agotado && resultado.pts > 0 && (
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                        Error: {Math.abs(resultado.respuesta - resultado.real) / Math.abs(resultado.real) * 100 < 0.1 ? 'Exacto!' : (Math.abs(resultado.respuesta - resultado.real) / Math.abs(resultado.real) * 100).toFixed(1) + '%'}
+                        {resultado.respuesta === resultado.real ? 'Exacto!' :
+                          pregunta.unidad === 'año'
+                            ? 'Diferencia: ' + Math.abs(resultado.respuesta - resultado.real) + ' años'
+                            : 'Error: ' + (Math.abs(resultado.respuesta - resultado.real) / Math.abs(resultado.real) * 100).toFixed(1) + '%'
+                        }
                       </div>
                     )}
                   </div>
