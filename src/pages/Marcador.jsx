@@ -5,6 +5,182 @@ import { getRankInfo } from '../lib/ranks.js'
 
 // ── Admin UIDs ─────────────────────────────────────────────────────────────
 const ADMIN_UIDS = ['2f506ea7-bb8a-4e5e-bf90-2816fcd73fe1']
+const CUOTAS_GRUPOS = {
+  // GRUPO A
+  1:  [1.40, 4.40, 8.25],   // México vs Sudáfrica
+  2:  [2.55, 3.05, 2.80],   // Corea del Sur vs Rep. Checa
+  25: [1.93, 3.20, 4.00],   // Rep. Checa vs Sudáfrica
+  28: [1.80, 3.35, 4.50],   // México vs Corea del Sur
+  53: [4.30, 3.40, 1.80],   // Rep. Checa vs México
+  54: [3.80, 3.30, 1.95],   // Sudáfrica vs Corea del Sur
+  // GRUPO B
+  3:  [1.77, 3.50, 4.30],   // Canadá vs Bosnia-Herz.
+  5:  [12.0, 6.00, 1.22],   // Qatar vs Suiza
+  26: [1.60, 3.80, 5.20],   // Suiza vs Bosnia-Herz.
+  27: [1.30, 5.00, 9.75],   // Canadá vs Qatar
+  49: [2.10, 3.20, 3.45],   // Suiza vs Canadá
+  50: [1.52, 3.90, 6.00],   // Bosnia-Herz. vs Qatar
+  // GRUPO C
+  6:  [1.62, 3.70, 5.20],   // Brasil vs Marruecos
+  7:  [5.60, 4.00, 1.52],   // Haití vs Escocia
+  29: [3.90, 3.20, 1.95],   // Escocia vs Marruecos
+  31: [1.07, 9.75, 24.0],   // Brasil vs Haití
+  51: [6.50, 4.30, 1.45],   // Escocia vs Brasil
+  52: [1.33, 4.80, 8.25],   // Marruecos vs Haití
+  // GRUPO D
+  4:  [1.95, 3.30, 3.80],   // Estados Unidos vs Paraguay
+  8:  [4.80, 3.60, 1.68],   // Australia vs Turquía
+  30: [1.73, 3.70, 4.30],   // Estados Unidos vs Australia
+  32: [2.20, 3.10, 3.35],   // Turquía vs Paraguay
+  59: [2.65, 3.35, 2.45],   // Turquía vs Estados Unidos
+  60: [2.15, 3.15, 3.35],   // Paraguay vs Australia
+  // GRUPO E
+  9:  [1.02, 15.0, 36.0],   // Alemania vs Curazao
+  11: [3.55, 2.85, 2.25],   // C. de Marfil vs Ecuador
+  34: [1.53, 4.10, 5.40],   // Alemania vs C. de Marfil
+  35: [1.19, 6.25, 13.0],   // Ecuador vs Curazao
+  55: [4.70, 3.65, 1.70],   // Ecuador vs Alemania
+  56: [12.0, 5.90, 1.22],   // Curazao vs C. de Marfil
+  // GRUPO F
+  10: [1.97, 3.50, 3.50],   // Países Bajos vs Japón
+  12: [1.87, 3.30, 4.20],   // Suecia vs Túnez
+  33: [1.62, 3.85, 5.00],   // Países Bajos vs Suecia
+  36: [5.00, 3.45, 1.70],   // Túnez vs Japón
+  57: [2.05, 3.30, 3.45],   // Japón vs Suecia
+  58: [6.00, 4.10, 1.50],   // Túnez vs Países Bajos
+  // GRUPO G
+  14: [1.63, 3.80, 4.90],   // Bélgica vs Egipto
+  16: [1.85, 3.30, 4.20],   // Irán vs Nueva Zelanda
+  38: [1.38, 4.50, 7.25],   // Bélgica vs Irán
+  40: [4.70, 3.60, 1.70],   // Nueva Zelanda vs Egipto
+  65: [2.20, 2.95, 3.50],   // Egipto vs Irán
+  66: [8.75, 5.20, 1.30],   // Nueva Zelanda vs Bélgica
+  // GRUPO H
+  13: [1.08, 9.00, 22.0],   // España vs Cabo Verde
+  15: [7.25, 4.30, 1.40],   // Arabia Saudita vs Uruguay
+  37: [1.10, 8.25, 22.0],   // España vs Arabia Saudita
+  39: [1.40, 4.30, 7.00],   // Uruguay vs Cabo Verde
+  63: [2.50, 3.15, 2.75],   // Cabo Verde vs Arabia Saudita
+  64: [5.10, 3.85, 1.60],   // Uruguay vs España
+  // GRUPO I
+  17: [1.45, 4.30, 6.75],   // Francia vs Senegal
+  18: [13.0, 6.25, 1.19],   // Iraq vs Noruega
+  42: [1.10, 7.75, 21.0],   // Francia vs Iraq
+  43: [2.05, 3.35, 3.40],   // Noruega vs Senegal
+  61: [4.20, 3.50, 1.78],   // Noruega vs Francia
+  62: [1.42, 4.30, 7.00],   // Senegal vs Iraq
+  // GRUPO J
+  19: [1.37, 4.50, 7.75],   // Argentina vs Argelia
+  20: [1.30, 5.20, 8.50],   // Austria vs Jordania
+  41: [1.63, 3.70, 5.10],   // Argentina vs Austria
+  44: [6.25, 4.00, 1.50],   // Jordania vs Argelia
+  71: [3.45, 3.10, 2.10],   // Argelia vs Austria
+  72: [13.0, 6.25, 1.19],   // Jordania vs Argentina
+  // GRUPO K
+  21: [1.25, 5.40, 10.0],   // Portugal vs R.D. Congo
+  24: [7.25, 4.40, 1.38],   // Uzbekistán vs Colombia
+  45: [1.25, 5.70, 9.75],   // Portugal vs Uzbekistán
+  48: [1.45, 4.00, 7.25],   // Colombia vs R.D. Congo
+  69: [3.40, 3.25, 2.10],   // Colombia vs Portugal
+  70: [2.30, 3.20, 3.05],   // R.D. Congo vs Uzbekistán
+  // GRUPO L
+  22: [1.70, 3.60, 4.70],   // Inglaterra vs Croacia
+  23: [1.98, 3.35, 3.60],   // Ghana vs Panamá
+  46: [1.30, 5.20, 8.75],   // Inglaterra vs Ghana
+  47: [6.00, 3.85, 1.53],   // Panamá vs Croacia
+  67: [8.75, 5.40, 1.28],   // Panamá vs Inglaterra
+  68: [1.65, 3.65, 5.10],   // Croacia vs Ghana
+}
+
+
+
+// ── Mapa de partidos para autocompletar cuotas ────────────────────────────
+const PARTIDOS_MUNDIALES = [
+  {id:1,  local:'México',         vis:'Sudáfrica',     fecha:'2026-06-11T21:00'},
+  {id:2,  local:'Corea del Sur',  vis:'Rep. Checa',    fecha:'2026-06-12T04:00'},
+  {id:3,  local:'Canadá',         vis:'Bosnia-Herz.',  fecha:'2026-06-12T21:00'},
+  {id:4,  local:'Estados Unidos', vis:'Paraguay',      fecha:'2026-06-13T03:00'},
+  {id:5,  local:'Qatar',          vis:'Suiza',         fecha:'2026-06-13T21:00'},
+  {id:6,  local:'Brasil',         vis:'Marruecos',     fecha:'2026-06-14T00:00'},
+  {id:7,  local:'Haití',          vis:'Escocia',       fecha:'2026-06-14T03:00'},
+  {id:8,  local:'Australia',      vis:'Turquía',       fecha:'2026-06-14T06:00'},
+  {id:9,  local:'Alemania',       vis:'Curazao',       fecha:'2026-06-14T19:00'},
+  {id:10, local:'Países Bajos',   vis:'Japón',         fecha:'2026-06-14T22:00'},
+  {id:11, local:'C. de Marfil',   vis:'Ecuador',       fecha:'2026-06-15T01:00'},
+  {id:12, local:'Suecia',         vis:'Túnez',         fecha:'2026-06-15T04:00'},
+  {id:13, local:'España',         vis:'Cabo Verde',    fecha:'2026-06-15T18:00'},
+  {id:14, local:'Bélgica',        vis:'Egipto',        fecha:'2026-06-15T21:00'},
+  {id:15, local:'Arabia Saudita', vis:'Uruguay',       fecha:'2026-06-16T00:00'},
+  {id:16, local:'Irán',           vis:'Nueva Zelanda', fecha:'2026-06-16T03:00'},
+  {id:17, local:'Francia',        vis:'Senegal',       fecha:'2026-06-16T21:00'},
+  {id:18, local:'Iraq',           vis:'Noruega',       fecha:'2026-06-17T00:00'},
+  {id:19, local:'Argentina',      vis:'Argelia',       fecha:'2026-06-17T03:00'},
+  {id:20, local:'Austria',        vis:'Jordania',      fecha:'2026-06-17T06:00'},
+  {id:21, local:'Portugal',       vis:'R.D. Congo',    fecha:'2026-06-17T19:00'},
+  {id:22, local:'Inglaterra',     vis:'Croacia',       fecha:'2026-06-17T22:00'},
+  {id:23, local:'Ghana',          vis:'Panamá',        fecha:'2026-06-18T01:00'},
+  {id:24, local:'Uzbekistán',     vis:'Colombia',      fecha:'2026-06-18T04:00'},
+  {id:25, local:'Rep. Checa',     vis:'Sudáfrica',     fecha:'2026-06-18T18:00'},
+  {id:26, local:'Suiza',          vis:'Bosnia-Herz.',  fecha:'2026-06-18T21:00'},
+  {id:27, local:'Canadá',         vis:'Qatar',         fecha:'2026-06-19T00:00'},
+  {id:28, local:'México',         vis:'Corea del Sur', fecha:'2026-06-19T03:00'},
+  {id:29, local:'Escocia',        vis:'Marruecos',     fecha:'2026-06-19T21:00'},
+  {id:30, local:'Estados Unidos', vis:'Australia',     fecha:'2026-06-20T00:00'},
+  {id:31, local:'Brasil',         vis:'Haití',         fecha:'2026-06-20T03:00'},
+  {id:32, local:'Turquía',        vis:'Paraguay',      fecha:'2026-06-20T06:00'},
+  {id:33, local:'Países Bajos',   vis:'Suecia',        fecha:'2026-06-20T19:00'},
+  {id:34, local:'Alemania',       vis:'C. de Marfil',  fecha:'2026-06-20T22:00'},
+  {id:35, local:'Ecuador',        vis:'Curazao',       fecha:'2026-06-21T02:00'},
+  {id:36, local:'Túnez',          vis:'Japón',         fecha:'2026-06-21T06:00'},
+  {id:37, local:'España',         vis:'Arabia Saudita',fecha:'2026-06-21T18:00'},
+  {id:38, local:'Bélgica',        vis:'Irán',          fecha:'2026-06-21T21:00'},
+  {id:39, local:'Uruguay',        vis:'Cabo Verde',    fecha:'2026-06-22T00:00'},
+  {id:40, local:'Nueva Zelanda',  vis:'Egipto',        fecha:'2026-06-22T03:00'},
+  {id:41, local:'Argentina',      vis:'Austria',       fecha:'2026-06-22T19:00'},
+  {id:42, local:'Francia',        vis:'Iraq',          fecha:'2026-06-22T23:00'},
+  {id:43, local:'Noruega',        vis:'Senegal',       fecha:'2026-06-23T02:00'},
+  {id:44, local:'Jordania',       vis:'Argelia',       fecha:'2026-06-23T05:00'},
+  {id:45, local:'Portugal',       vis:'Uzbekistán',    fecha:'2026-06-23T19:00'},
+  {id:46, local:'Inglaterra',     vis:'Ghana',         fecha:'2026-06-23T22:00'},
+  {id:47, local:'Panamá',         vis:'Croacia',       fecha:'2026-06-24T01:00'},
+  {id:48, local:'Colombia',       vis:'R.D. Congo',    fecha:'2026-06-24T04:00'},
+  {id:49, local:'Suiza',          vis:'Canadá',        fecha:'2026-06-24T21:00'},
+  {id:50, local:'Bosnia-Herz.',   vis:'Qatar',         fecha:'2026-06-24T21:00'},
+  {id:51, local:'Escocia',        vis:'Brasil',        fecha:'2026-06-25T00:00'},
+  {id:52, local:'Marruecos',      vis:'Haití',         fecha:'2026-06-25T00:00'},
+  {id:53, local:'Rep. Checa',     vis:'México',        fecha:'2026-06-25T03:00'},
+  {id:54, local:'Sudáfrica',      vis:'Corea del Sur', fecha:'2026-06-25T03:00'},
+  {id:55, local:'Ecuador',        vis:'Alemania',      fecha:'2026-06-25T22:00'},
+  {id:56, local:'Curazao',        vis:'C. de Marfil',  fecha:'2026-06-25T22:00'},
+  {id:57, local:'Japón',          vis:'Suecia',        fecha:'2026-06-26T01:00'},
+  {id:58, local:'Túnez',          vis:'Países Bajos',  fecha:'2026-06-26T01:00'},
+  {id:59, local:'Turquía',        vis:'Estados Unidos',fecha:'2026-06-26T04:00'},
+  {id:60, local:'Paraguay',       vis:'Australia',     fecha:'2026-06-26T04:00'},
+  {id:61, local:'Noruega',        vis:'Francia',       fecha:'2026-06-26T21:00'},
+  {id:62, local:'Senegal',        vis:'Iraq',          fecha:'2026-06-26T21:00'},
+  {id:63, local:'Cabo Verde',     vis:'Arabia Saudita',fecha:'2026-06-27T02:00'},
+  {id:64, local:'Uruguay',        vis:'España',        fecha:'2026-06-27T02:00'},
+  {id:65, local:'Egipto',         vis:'Irán',          fecha:'2026-06-27T05:00'},
+  {id:66, local:'Nueva Zelanda',  vis:'Bélgica',       fecha:'2026-06-27T05:00'},
+  {id:67, local:'Panamá',         vis:'Inglaterra',    fecha:'2026-06-27T23:00'},
+  {id:68, local:'Croacia',        vis:'Ghana',         fecha:'2026-06-27T23:00'},
+  {id:69, local:'Colombia',       vis:'Portugal',      fecha:'2026-06-28T01:30'},
+  {id:70, local:'R.D. Congo',     vis:'Uzbekistán',    fecha:'2026-06-28T01:30'},
+  {id:71, local:'Argelia',        vis:'Austria',       fecha:'2026-06-28T04:00'},
+  {id:72, local:'Jordania',       vis:'Argentina',     fecha:'2026-06-28T04:00'},
+]
+
+function buscarCuotasYFecha(equipoLocal, equipoVisitante) {
+  if (!equipoLocal || !equipoVisitante) return null
+  const norm = s => s.toLowerCase().trim()
+  const partido = PARTIDOS_MUNDIALES.find(p =>
+    norm(p.local) === norm(equipoLocal) && norm(p.vis) === norm(equipoVisitante)
+  )
+  if (!partido) return null
+  const cuotas = CUOTAS_GRUPOS[partido.id]
+  if (!cuotas) return null
+  return { cuota_1: cuotas[0], cuota_x: cuotas[1], cuota_2: cuotas[2], fecha: partido.fecha }
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function getUserId() {
@@ -395,6 +571,32 @@ function TabMisApuestas({ misApuestas, partidos }) {
 function TabAdmin({ partidos, onRefresh, onPuntosChange }) {
   const [form, setForm] = useState({ equipo_local:'', equipo_visitante:'', descripcion:'', fecha_inicio:'', cuota_1:'', cuota_x:'', cuota_2:'' })
   const [msg, setMsg] = useState('')
+  const [autoSugerido, setAutoSugerido] = useState(false)
+
+  // Autocompletar cuotas y fecha cuando se escriben ambos equipos
+  function handleEquipoChange(campo, valor) {
+    const nuevoForm = { ...form, [campo]: valor }
+    const loc = campo === 'equipo_local' ? valor : form.equipo_local
+    const vis = campo === 'equipo_visitante' ? valor : form.equipo_visitante
+    const datos = buscarCuotasYFecha(loc, vis)
+    if (datos) {
+      nuevoForm.cuota_1 = datos.cuota_1
+      nuevoForm.cuota_x = datos.cuota_x
+      nuevoForm.cuota_2 = datos.cuota_2
+      // Solo autocompletar fecha si está vacía
+      if (!form.fecha_inicio) {
+        // Convertir a datetime-local en hora local
+        const d = new Date(datos.fecha + ':00+02:00')
+        const offset = d.getTimezoneOffset()
+        const localISO = new Date(d.getTime() - offset * 60000).toISOString().slice(0,16)
+        nuevoForm.fecha_inicio = localISO
+      }
+      setAutoSugerido(true)
+    } else {
+      setAutoSugerido(false)
+    }
+    setForm(nuevoForm)
+  }
   const [resolv, setResolv] = useState({})
   const [editando, setEditando] = useState(null)
   const [editForm, setEditForm] = useState({})
@@ -471,8 +673,8 @@ function TabAdmin({ partidos, onRefresh, onPuntosChange }) {
       <h2 className="marc-section-title">➕ Crear partido</h2>
       <div className="marc-admin-form">
         <div className="marc-admin-row2">
-          <input className="marc-input" placeholder="Equipo local *" value={form.equipo_local} onChange={e => setForm(f => ({...f, equipo_local:e.target.value}))} />
-          <input className="marc-input" placeholder="Equipo visitante *" value={form.equipo_visitante} onChange={e => setForm(f => ({...f, equipo_visitante:e.target.value}))} />
+          <input className="marc-input" placeholder="Equipo local *" value={form.equipo_local} onChange={e => handleEquipoChange('equipo_local', e.target.value)} />
+          <input className="marc-input" placeholder="Equipo visitante *" value={form.equipo_visitante} onChange={e => handleEquipoChange('equipo_visitante', e.target.value)} />
         </div>
         <input className="marc-input" placeholder="Descripción (ej: Grupo A · Jornada 1)" value={form.descripcion} onChange={e => setForm(f => ({...f, descripcion:e.target.value}))} />
         <input className="marc-input" type="datetime-local" value={form.fecha_inicio} onChange={e => setForm(f => ({...f, fecha_inicio:e.target.value}))} />
@@ -481,6 +683,7 @@ function TabAdmin({ partidos, onRefresh, onPuntosChange }) {
           <div className="marc-cuota-field"><label>Cuota X (empate)</label><input className="marc-input" type="number" step="0.01" min="1" placeholder="ej: 3.20" value={form.cuota_x} onChange={e => setForm(f => ({...f, cuota_x:e.target.value}))} /></div>
           <div className="marc-cuota-field"><label>Cuota 2 (visitante)</label><input className="marc-input" type="number" step="0.01" min="1" placeholder="ej: 1.80" value={form.cuota_2} onChange={e => setForm(f => ({...f, cuota_2:e.target.value}))} /></div>
         </div>
+        {autoSugerido && <p style={{fontSize:'.75rem',color:'#00e676',margin:'0'}}>✓ Cuotas y fecha autocompletadas desde DAZNBet · Puedes editarlas</p>}
         <button className="marc-admin-btn" onClick={crearPartido}>Crear partido</button>
         {msg && <p className="marc-msg">{msg}</p>}
       </div>
