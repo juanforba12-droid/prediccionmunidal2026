@@ -75,10 +75,7 @@ export default function EstimonOnline() {
   async function cargarSesion() {
     const { data } = await supabase.from('estimon_sessions').select('*').eq('id', id).single()
     if (!data) return
-    setSesion(function(prev) {
-      if (prev && prev.estado === data.estado && prev.ronda === data.ronda && JSON.stringify(prev.respuestas) === JSON.stringify(data.respuestas)) return prev
-      return data
-    })
+    setSesion(data)
   }
 
   useEffect(function() {
