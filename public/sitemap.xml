@@ -2,27 +2,42 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://juegosdefutbolenespanol.vercel.app/</loc>
-    <changefreq>weekly</changefreq>
+    <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://juegosdefutbolenespanol.vercel.app/topdiezgame</loc>
-    <changefreq>weekly</changefreq>
+    <loc>https://juegosdefutbolenespanol.vercel.app/prediccion</loc>
+    <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://juegosdefutbolenespanol.vercel.app/adivina</loc>
+    <loc>https://juegosdefutbolenespanol.vercel.app/estimon</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://juegosdefutbolenespanol.vercel.app/marcador</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://juegosdefutbolenespanol.vercel.app/mentiroso</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://juegosdefutbolenespanol.vercel.app/prediccion</loc>
+    <loc>https://juegosdefutbolenespanol.vercel.app/topdiezgame</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://juegosdefutbolenespanol.vercel.app/adivina</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://juegosdefutbolenespanol.vercel.app/ranking</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
   </url>
 </urlset>
