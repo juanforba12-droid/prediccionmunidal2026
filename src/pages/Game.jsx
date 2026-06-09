@@ -630,7 +630,7 @@ export default function Game() {
             )}
 
             <div style={{ marginBottom: 12, padding: '8px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, fontSize: 11, color: '#2a6070' }}>
-              {fase === 'grupos' ? 'Resultado exacto: 5 pts | Ganador/empate: 1 pt'
+              {fase === 'grupos' ? 'Resultado exacto: 5 pts | Resultado correcto: 1 pt'
                 : fase === 'tercero' ? '3er puesto - 4 pts'
                 : (TODAS_LAS_FASES.find(function(f) { return f.key === fase }) || {}).label + ' - Acierta quien pasa: ' + (PTS_CLASIFICADO[fase] || 0) + ' pts'}
             </div>
