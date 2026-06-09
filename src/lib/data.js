@@ -94,6 +94,7 @@ export const PTS_CLASIFICADO = {
   octavos:       4,
   cuartos:       5,
   semis:         6,
+  tercero:       4,
   final:         7,
 }
 
