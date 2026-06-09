@@ -65,6 +65,21 @@ function calcStandingsFromReales(reales) {
 
 function resolverPlaceholder(placeholder, realClasif, standingsVivo) {
   if (!placeholder) return placeholder
+  // Resolver perdedores de semifinales
+  if (placeholder === 'Perdedor SF1' || placeholder === 'Perdedor SF2') {
+    const semiId = placeholder === 'Perdedor SF1' ? 401 : 402
+    const ganador = realClasif[semiId]
+    if (!ganador) return placeholder
+    // Buscar el partido de semis para saber los dos equipos
+    const semi = PARTIDOS_ELIMINATORIAS.find(function(m) { return m.id === semiId })
+    if (!semi) return placeholder
+    const eq1 = resolverPlaceholder(semi.local, realClasif, standingsVivo)
+    const eq2 = resolverPlaceholder(semi.vis, realClasif, standingsVivo)
+    // El perdedor es el que NO es el ganador
+    if (eq1 === ganador) return eq2
+    if (eq2 === ganador) return eq1
+    return placeholder
+  }
   const grpMatch = placeholder.match(/^([1-4])([A-L])$/)
   if (grpMatch) {
     const pos = parseInt(grpMatch[1]) - 1
@@ -438,7 +453,7 @@ export default function Game() {
       else if (p === 1) { pts += 1; result++ }
     })
     PARTIDOS_ELIMINATORIAS.forEach(function(m) {
-      if (m.fase === 'tercero') return
+      // tercero ahora sí puntúa
       if (m.tercero && m.vis === '3?') return
       const predEq = pc[m.id] || ''
       const realEq = realClasif[m.id] || ''
@@ -478,7 +493,7 @@ export default function Game() {
     return predClasif[m.id] && predClasif[m.id] !== ''
   }).length
   const completed = completedPreds + completedElim
-  const totalPredecible = PARTIDOS_GRUPOS.length + PARTIDOS_ELIMINATORIAS.filter(function(m) { return m.fase !== 'tercero' }).length
+  const totalPredecible = PARTIDOS_GRUPOS.length + PARTIDOS_ELIMINATORIAS.length
 
   function handleCopy() {
     if (navigator.clipboard) navigator.clipboard.writeText(shareUrl).catch(function() {})
@@ -736,7 +751,45 @@ export default function Game() {
                       </div>
                     )}
                     {isTerceroFase && (
-                      <div style={{ textAlign: 'center', padding: '6px 0', fontSize: 11, color: '#2a4060' }}>3er puesto - no puntua</div>
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: 11, color: '#2a4060', marginBottom: 6 }}>
+                          {'Quien gana el 3er puesto? '}<span style={{ color: mc, fontWeight: 700 }}>+4 pts</span>
+                        </div>
+                        {!esPlaceholder(localReal) && !esPlaceholder(visReal) ? (
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            {[localReal, visReal].map(function(eq) {
+                              return (
+                                <button key={eq} onClick={function() { if (!locked) savePredClasif(m.id, eq) }}
+                                  style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: '2px solid ' + (miPredEq === eq ? mc : 'rgba(255,255,255,0.1)'), background: miPredEq === eq ? mc + '22' : 'rgba(255,255,255,0.04)', color: miPredEq === eq ? mc : '#8a9ab0', fontWeight: miPredEq === eq ? 700 : 400, fontSize: 13, cursor: locked ? 'not-allowed' : 'pointer' }}>
+                                  {eq}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <div style={{ textAlign: 'center', fontSize: 12, color: '#2a4060' }}>Pendiente de semifinales</div>
+                        )}
+                        {hasRealEq && (
+                          <div style={{ marginTop: 6, fontSize: 11, color: ptsClas > 0 ? '#2a9d8f' : '#e63946' }}>
+                            {ptsClas > 0 ? 'Acertaste! +4 pts' : 'Ganador 3er puesto: ' + realEq}
+                          </div>
+                        )}
+                        {isCreator && !esPlaceholder(localReal) && !esPlaceholder(visReal) && (
+                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ fontSize: 11, color: '#ffd700', fontWeight: 700, marginBottom: 6 }}>Admin - Quien gano el 3er puesto?</div>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {[localReal, visReal].map(function(eq) {
+                                return (
+                                  <button key={eq} onClick={function() { saveRealClasif(m.id, eq) }}
+                                    style={{ flex: 1, padding: '6px 8px', borderRadius: 8, border: '1.5px solid ' + (realEq === eq ? 'rgba(42,157,143,.6)' : 'rgba(255,215,0,0.2)'), background: realEq === eq ? 'rgba(42,157,143,.2)' : 'rgba(255,215,0,0.04)', color: realEq === eq ? '#2a9d8f' : '#ffd700', fontSize: 12, cursor: 'pointer', fontWeight: realEq === eq ? 700 : 400 }}>
+                                    {eq}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {!isElim && (
