@@ -15,9 +15,10 @@ function getAuthId() {
 
 function calcPuntosPorError(respuesta, real, unidad) {
   if (real == null) return 0
+  const diff = Math.abs(respuesta - real)
+
   // Para años: diferencia absoluta en años
   if (unidad === 'año') {
-    const diff = Math.abs(respuesta - real)
     if (diff === 0) return 5
     if (diff <= 2) return 4
     if (diff <= 5) return 3
@@ -25,14 +26,45 @@ function calcPuntosPorError(respuesta, real, unidad) {
     if (diff <= 20) return 1
     return 0
   }
-  // Para el resto: porcentaje de error
-  if (!real || real === 0) return 0
-  const err = Math.abs(respuesta - real) / Math.abs(real) * 100
-  if (err <= 1) return 5
-  if (err <= 3) return 4
-  if (err <= 7) return 3
-  if (err <= 15) return 2
-  if (err <= 25) return 1
+
+  const r = Math.abs(real)
+
+  // Valores pequeños (< 20): margen de 4 unidades por punto
+  if (r < 20) {
+    if (diff === 0) return 5
+    if (diff <= 1) return 4
+    if (diff <= 2) return 3
+    if (diff <= 3) return 2
+    if (diff <= 4) return 1
+    return 0
+  }
+
+  // Valores medios (20-99): margen de 3 unidades por punto
+  if (r < 100) {
+    if (diff === 0) return 5
+    if (diff <= 3) return 4
+    if (diff <= 6) return 3
+    if (diff <= 9) return 2
+    if (diff <= 12) return 1
+    return 0
+  }
+
+  // Valores grandes (100-249): margen de 5 unidades por punto
+  if (r < 250) {
+    if (diff === 0) return 5
+    if (diff <= 5) return 4
+    if (diff <= 10) return 3
+    if (diff <= 15) return 2
+    if (diff <= 20) return 1
+    return 0
+  }
+
+  // Valores muy grandes (>= 250): margen de 12 unidades por punto
+  if (diff === 0) return 5
+  if (diff <= 12) return 4
+  if (diff <= 24) return 3
+  if (diff <= 36) return 2
+  if (diff <= 48) return 1
   return 0
 }
 
