@@ -295,10 +295,10 @@ export default function Game() {
     setPreds(function(p) { return Object.assign({}, p, { [matchId]: Object.assign({}, p[matchId] || {}, { [side]: clean }) }) })
     clearTimeout(saveTimer.current[matchId])
     saveTimer.current[matchId] = setTimeout(async function() {
-      const me = JSON.parse(localStorage.getItem('player_' + code) || '{}')
+      if (!myPlayer || !myPlayer.id) return
       const cur = Object.assign({}, preds[matchId] || {}, { [side]: clean })
       await supabase.from('predictions').upsert({
-        group_code: code, player_id: me.id, match_id: matchId,
+        group_code: code, player_id: myPlayer.id, match_id: matchId,
         goals_local: cur.l !== '' ? parseInt(cur.l) : null,
         goals_vis: cur.v !== '' ? parseInt(cur.v) : null,
       }, { onConflict: 'group_code,player_id,match_id' })
@@ -331,13 +331,17 @@ export default function Game() {
     const yaSeleccionado = predClasif[matchId] === equipo
     const next = Object.assign({}, predClasif, { [matchId]: yaSeleccionado ? '' : equipo })
     setPredClasif(next)
-    clearTimeout(clasifTimer.current)
-    clasifTimer.current = setTimeout(async function() {
-      const me = JSON.parse(localStorage.getItem('player_' + code) || '{}')
-      const newExtras = Object.assign({}, extras, { clasif_elim: next })
-      setExtras(newExtras)
-      await supabase.from('players').update({ extras_pred: newExtras }).eq('id', me.id)
-    }, 600)
+    // Usar setExtras con función para evitar closure stale
+    setExtras(function(prevExtras) {
+      const newExtras = Object.assign({}, prevExtras, { clasif_elim: next })
+      // Guardar en Supabase con los extras actualizados
+      clearTimeout(clasifTimer.current)
+      clasifTimer.current = setTimeout(async function() {
+        if (!myPlayer || !myPlayer.id) return
+        await supabase.from('players').update({ extras_pred: newExtras }).eq('id', myPlayer.id)
+      }, 600)
+      return newExtras
+    })
   }
 
   async function saveRealClasif(matchId, equipo) {
@@ -355,8 +359,8 @@ export default function Game() {
     setExtras(newExtras)
     clearTimeout(extrasTimer.current)
     extrasTimer.current = setTimeout(async function() {
-      const me = JSON.parse(localStorage.getItem('player_' + code) || '{}')
-      await supabase.from('players').update({ extras_pred: newExtras }).eq('id', me.id)
+      if (!myPlayer || !myPlayer.id) return
+      await supabase.from('players').update({ extras_pred: newExtras }).eq('id', myPlayer.id)
     }, 800)
   }
 
@@ -603,9 +607,9 @@ export default function Game() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>
               <span style={{ fontSize: 11, color: '#2a4060' }}>Partidos jugados</span>
               <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#1a2a3a', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: (completed / ALL_MATCHES.length * 100) + '%', background: 'linear-gradient(90deg,' + mc + ',' + mc + '88)', borderRadius: 2 }} />
+                <div style={{ height: '100%', width: (completed / totalPredecible * 100) + '%', background: 'linear-gradient(90deg,' + mc + ',' + mc + '88)', borderRadius: 2 }} />
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700 }}>{completedPreds + '/72'}</span>
+              <span style={{ fontSize: 11, fontWeight: 700 }}>{completed + '/' + totalPredecible}</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
