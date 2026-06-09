@@ -458,7 +458,7 @@ function TarjetaPartido({ partido, misApuestas, puntosLibres, onApostar }) {
           return (
             <button key={op.key}
               className={`marc-cuota-btn ${opcion === op.key ? 'marc-cuota-sel' : ''} ${ganadora ? 'marc-cuota-win' : ''} ${partido.estado !== 'abierto' ? 'marc-cuota-disabled' : ''}`}
-              onClick={() => partido.estado === 'abierto' && setOpcion(op.key)}
+              onClick={() => partido.estado === 'abierto' && setOpcion(prev => prev === op.key ? null : op.key)}
               disabled={partido.estado !== 'abierto'}
             >
               <span className="marc-cuota-label">{op.key}</span>
