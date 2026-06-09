@@ -463,6 +463,7 @@ export default function Game() {
     return predClasif[m.id] && predClasif[m.id] !== ''
   }).length
   const completed = completedPreds + completedElim
+  const totalPredecible = PARTIDOS_GRUPOS.length + PARTIDOS_ELIMINATORIAS.filter(function(m) { return m.fase !== 'tercero' }).length
 
   function handleCopy() {
     if (navigator.clipboard) navigator.clipboard.writeText(shareUrl).catch(function() {})
