@@ -7,7 +7,7 @@ import {
 } from '../lib/data.js'
 
 const ALL_MATCHES = [...PARTIDOS_GRUPOS, ...PARTIDOS_ELIMINATORIAS]
-const ELIM_FASES = ['dieciseisavos','octavos','cuartos','semis','final']
+const ELIM_FASES = ['dieciseisavos','octavos','cuartos','semis','tercero','final']
 const LOCK_DATE = new Date('2026-06-11T18:00:00+02:00')
 const isGloballyLocked = () => new Date() >= LOCK_DATE
 const ADMIN_UIDS = ['2f506ea7-bb8a-4e5e-bf90-2816fcd73fe1']
@@ -631,7 +631,7 @@ export default function Game() {
 
             <div style={{ marginBottom: 12, padding: '8px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, fontSize: 11, color: '#2a6070' }}>
               {fase === 'grupos' ? 'Resultado exacto: 5 pts | Ganador/empate: 1 pt'
-                : fase === 'tercero' ? '3er puesto - no puntua'
+                : fase === 'tercero' ? '3er puesto - 4 pts'
                 : (TODAS_LAS_FASES.find(function(f) { return f.key === fase }) || {}).label + ' - Acierta quien pasa: ' + (PTS_CLASIFICADO[fase] || 0) + ' pts'}
             </div>
 
@@ -1110,12 +1110,12 @@ export default function Game() {
 
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: '#e8eaf0', marginBottom: 14 }}>Quien pasa - Eliminatorias</div>
-              {['dieciseisavos', 'octavos', 'cuartos', 'semis', 'final'].map(function(faseElim) {
+              {['dieciseisavos', 'octavos', 'cuartos', 'semis', 'tercero', 'final'].map(function(faseElim) {
                 return (
                   <div key={faseElim} style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 12, color: '#2a4060', fontWeight: 700, marginBottom: 8, letterSpacing: 2, textTransform: 'uppercase' }}>{faseElim}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {PARTIDOS_ELIMINATORIAS.filter(function(m) { return m.fase === faseElim && !m.tercero }).map(function(m) {
+                      {PARTIDOS_ELIMINATORIAS.filter(function(m) { return m.fase === faseElim }).map(function(m) {
                         const localR = resolverPlaceholder(m.local, realClasif, standingsVivo)
                         const visR = resolverPlaceholder(m.vis, realClasif, standingsVivo)
                         const realEqA = realClasif[m.id] || ''
