@@ -36,31 +36,50 @@ export default function MyGroups() {
     setJoiningTqm(true)
     setTqmMsg('')
     try {
+      // Verificar que el grupo existe
       const { data: grp } = await supabase.from('groups').select('*').eq('code', TOQUEYMEDIO_CODE).single()
       if (!grp) {
         setTqmMsg('La liga aun no esta disponible, vuelve pronto!')
         setJoiningTqm(false)
         return
       }
-      const { data: existing } = await supabase.from('players').select('*').eq('group_code', TOQUEYMEDIO_CODE).eq('user_id', user.id).single()
+      // Verificar si ya está como player por nombre
+      const { data: existingPlayers } = await supabase
+        .from('players')
+        .select('*')
+        .eq('group_code', TOQUEYMEDIO_CODE)
+      const existing = existingPlayers && existingPlayers.find(p => p.name === displayName)
       if (existing) {
+        // Guardar en localStorage para que Game.jsx lo reconozca
+        localStorage.setItem('player_' + TOQUEYMEDIO_CODE, JSON.stringify(existing))
         nav(`/grupo/${TOQUEYMEDIO_CODE}`)
+        setJoiningTqm(false)
         return
       }
+      // Crear el player
       const AVATARS = ['⚽','🦁','🐯','🦅','🐉','🦊','🐺','🦈','🐻','🦋','🌟','🔥','💎','🚀','🎯','👑']
       const COLORS = ['#e63946','#f4a261','#2a9d8f','#457b9d','#9b5de5','#e9c46a','#06d6a0','#ef476f','#118ab2','#ffd166']
       const avatar = AVATARS[Math.floor(Math.random() * AVATARS.length)]
       const color = COLORS[Math.floor(Math.random() * COLORS.length)]
-      const { error } = await supabase.from('players').insert({
+      const newPlayer = {
+        id: crypto.randomUUID(),
         group_code: TOQUEYMEDIO_CODE,
-        user_id: user.id,
         name: displayName,
         avatar,
         color,
-      })
-      if (error) { setTqmMsg('Error al unirte. Intentalo de nuevo.'); setJoiningTqm(false); return }
+      }
+      const { error } = await supabase.from('players').insert(newPlayer)
+      if (error) {
+        console.error('Insert error:', error)
+        setTqmMsg('Error al unirte. Intentalo de nuevo.')
+        setJoiningTqm(false)
+        return
+      }
+      // Guardar en localStorage para que Game.jsx lo reconozca
+      localStorage.setItem('player_' + TOQUEYMEDIO_CODE, JSON.stringify(newPlayer))
       nav(`/grupo/${TOQUEYMEDIO_CODE}`)
     } catch(e) {
+      console.error(e)
       setTqmMsg('Error inesperado. Intentalo de nuevo.')
     }
     setJoiningTqm(false)
