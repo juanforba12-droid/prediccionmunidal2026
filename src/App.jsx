@@ -20,6 +20,9 @@ import Marcador from './pages/Marcador.jsx'
 import EstimonHome from './pages/EstimonHome.jsx'
 import EstimonIndividual from './pages/EstimonIndividual.jsx'
 import EstimonOnline from './pages/EstimonOnline.jsx'
+import PlantillasHistoricasHome from './pages/PlantillasHistoricasHome.jsx'
+import PlantillasHistoricasIndividual from './pages/PlantillasHistoricasIndividual.jsx'
+import PlantillasHistoricasOnline from './pages/PlantillasHistoricasOnline.jsx'
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(undefined)
@@ -58,6 +61,9 @@ export default function App() {
       <Route path="/estimon" element={<EstimonHome />} />
       <Route path="/estimon/individual" element={<EstimonIndividual />} />
       <Route path="/estimon/online/:id" element={<EstimonOnline />} />
+      <Route path="/plantillas" element={<PlantillasHistoricasHome />} />
+      <Route path="/plantillas/individual" element={<PlantillasHistoricasIndividual />} />
+      <Route path="/plantillas/online" element={<PlantillasHistoricasOnline />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
