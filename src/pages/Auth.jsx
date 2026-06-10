@@ -46,7 +46,7 @@ export default function Auth() {
     if (!email) { setMsg('Escribe tu email primero'); return }
     setLoading(true); setMsg('')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://juegosdefutbolenespanol.vercel.app/'
+      redirectTo: 'https://juegosdefutbolenespanol.vercel.app/reset-password'
     })
     if (error) setMsg('Error al enviar el email')
     else setMsg('✉️ Email enviado, revisa tu bandeja de entrada')
