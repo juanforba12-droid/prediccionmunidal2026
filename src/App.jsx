@@ -23,6 +23,7 @@ import EstimonOnline from './pages/EstimonOnline.jsx'
 import PlantillasHistoricasHome from './pages/PlantillasHistoricasHome.jsx'
 import PlantillasHistoricasIndividual from './pages/PlantillasHistoricasIndividual.jsx'
 import PlantillasHistoricasOnline from './pages/PlantillasHistoricasOnline.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(undefined)
@@ -42,6 +43,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<Home />} />
       <Route path="/ranking" element={<Ranking />} />
       <Route path="/marcador" element={<Marcador />} />
