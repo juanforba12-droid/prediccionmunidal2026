@@ -12,41 +12,29 @@ export default function ResetPassword() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    const hash = window.location.hash.substring(1)
-    const params = new URLSearchParams(hash)
-    const token = params.get('access_token')
-    const type = params.get('type')
+    // Con flowType sin PKCE, Supabase detecta el token de la URL automáticamente
+    // y dispara PASSWORD_RECOVERY en onAuthStateChange
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+        setValidSession(true)
+        setChecking(false)
+      }
+    })
 
-    if (type === 'recovery' && token) {
-      // Intentar con verifyOtp (para tokens OTP cortos que genera Supabase)
-      supabase.auth.verifyOtp({
-        token_hash: token,
-        type: 'recovery'
-      }).then(({ data, error }) => {
-        if (error) {
-          // Fallback: intentar setSession por si es un JWT largo
-          supabase.auth.setSession({
-            access_token: token,
-            refresh_token: ''
-          }).then(({ error: e2 }) => {
-            if (!e2) setValidSession(true)
-            setChecking(false)
-          })
-        } else {
-          setValidSession(true)
-          setChecking(false)
-        }
-      })
-    } else {
-      // Escuchar evento PASSWORD_RECOVERY como fallback
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          setValidSession(true)
-          setChecking(false)
-        }
-      })
-      setTimeout(() => setChecking(false), 3000)
-      return () => subscription.unsubscribe()
+    // También comprobar si ya hay sesión activa (por si el evento ya se disparó)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setValidSession(true)
+        setChecking(false)
+      }
+    })
+
+    // Timeout de seguridad
+    const timer = setTimeout(() => setChecking(false), 4000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timer)
     }
   }, [])
 
