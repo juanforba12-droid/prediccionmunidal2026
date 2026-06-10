@@ -98,22 +98,22 @@ export const PTS_CLASIFICADO = {
 }
 
 export const PARTIDOS_ELIMINATORIAS = [
-  // --- DIECISEISAVOS LADO IZQUIERDO ---
-  {id:101, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 28 Jun', local:'1E', vis:'3?', tercero:true},
-  {id:102, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 28 Jun', local:'1I', vis:'3?', tercero:true},
-  {id:103, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Dom 29 Jun', local:'2A', vis:'2B'},
-  {id:104, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Dom 29 Jun', local:'1F', vis:'2C'},
+  // --- DIECISEISAVOS FIJOS (IDs 101-108) ---
+  {id:101, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 28 Jun', local:'2A', vis:'2B'},
+  {id:102, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 28 Jun', local:'1C', vis:'2F'},
+  {id:103, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Dom 29 Jun', local:'1F', vis:'2C'},
+  {id:104, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Dom 29 Jun', local:'2E', vis:'2I'},
   {id:105, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Lun 30 Jun', local:'2K', vis:'2L'},
   {id:106, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Lun 30 Jun', local:'1H', vis:'2J'},
-  {id:107, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mar 1 Jul',  local:'1D', vis:'3?', tercero:true},
-  {id:108, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mar 1 Jul',  local:'1G', vis:'3?', tercero:true},
-  // --- DIECISEISAVOS LADO DERECHO ---
-  {id:113, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mié 2 Jul',  local:'1C', vis:'2F'},
-  {id:114, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mié 2 Jul',  local:'2E', vis:'2I'},
+  {id:107, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mar 1 Jul',  local:'1J', vis:'2H'},
+  {id:108, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mar 1 Jul',  local:'2D', vis:'2G'},
+  // --- DIECISEISAVOS VS MEJORES TERCEROS (IDs 113-120) ---
+  {id:113, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mié 2 Jul',  local:'1E', vis:'3?', tercero:true},
+  {id:114, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mié 2 Jul',  local:'1I', vis:'3?', tercero:true},
   {id:115, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Jue 3 Jul',  local:'1A', vis:'3?', tercero:true},
   {id:116, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Jue 3 Jul',  local:'1L', vis:'3?', tercero:true},
-  {id:117, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Vie 4 Jul',  local:'1J', vis:'2H'},
-  {id:118, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Vie 4 Jul',  local:'2D', vis:'2G'},
+  {id:117, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Vie 4 Jul',  local:'1D', vis:'3?', tercero:true},
+  {id:118, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Vie 4 Jul',  local:'1G', vis:'3?', tercero:true},
   {id:119, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 5 Jul',  local:'1B', vis:'3?', tercero:true},
   {id:120, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 5 Jul',  local:'1K', vis:'3?', tercero:true},
   // --- OCTAVOS (8-11 Jul) ---
