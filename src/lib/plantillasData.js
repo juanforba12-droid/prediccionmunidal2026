@@ -433,8 +433,7 @@ export const PLANTILLAS = [
     {pos:"MF",nombre:"Pedri"},{pos:"MF",nombre:"Dani Olmo"},
     {pos:"FW",nombre:"Raphinha"},{pos:"FW",nombre:"Lamine Yamal"},
     {pos:"FW",nombre:"Marcus Rashford"}
-  ]}
-
+  ]},
 
   // ── MANCHESTER UNITED ─────────────────────────────────────────────────────
   { id:"mu_1999_2000", equipo:"Manchester United", temporada:"1999-2000", jugadores:[
