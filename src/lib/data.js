@@ -88,7 +88,6 @@ export const PARTIDOS_GRUPOS = [
   {id:72, fase:'grupos', jornada:'J3', fecha:'Sáb 27 Jun', grupo:'J', local:'Jordania',        vis:'Argentina'},
 ]
 
-// Puntos por equipo clasificado acertado en eliminatorias
 export const PTS_CLASIFICADO = {
   dieciseisavos: 5,
   octavos:       4,
@@ -99,22 +98,22 @@ export const PTS_CLASIFICADO = {
 }
 
 export const PARTIDOS_ELIMINATORIAS = [
-  // --- DIECISEISAVOS: Cruces FIJOS ---
-  {id:101, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 28 Jun', local:'2A', vis:'2B'},
-  {id:102, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 28 Jun', local:'1C', vis:'2F'},
-  {id:103, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Dom 29 Jun', local:'1F', vis:'2C'},
-  {id:104, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Dom 29 Jun', local:'2E', vis:'2I'},
+  // --- DIECISEISAVOS LADO IZQUIERDO ---
+  {id:101, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 28 Jun', local:'1E', vis:'3?', tercero:true},
+  {id:102, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 28 Jun', local:'1I', vis:'3?', tercero:true},
+  {id:103, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Dom 29 Jun', local:'2A', vis:'2B'},
+  {id:104, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Dom 29 Jun', local:'1F', vis:'2C'},
   {id:105, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Lun 30 Jun', local:'2K', vis:'2L'},
   {id:106, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Lun 30 Jun', local:'1H', vis:'2J'},
-  {id:107, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mar 1 Jul',  local:'1J', vis:'2H'},
-  {id:108, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mar 1 Jul',  local:'2D', vis:'2G'},
-  // --- DIECISEISAVOS: Cruces vs mejores terceros (se rellenan tras grupos) ---
-  {id:113, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mié 2 Jul',  local:'1E', vis:'3?', tercero:true},
-  {id:114, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mié 2 Jul',  local:'1I', vis:'3?', tercero:true},
+  {id:107, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mar 1 Jul',  local:'1D', vis:'3?', tercero:true},
+  {id:108, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mar 1 Jul',  local:'1G', vis:'3?', tercero:true},
+  // --- DIECISEISAVOS LADO DERECHO ---
+  {id:113, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mié 2 Jul',  local:'1C', vis:'2F'},
+  {id:114, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Mié 2 Jul',  local:'2E', vis:'2I'},
   {id:115, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Jue 3 Jul',  local:'1A', vis:'3?', tercero:true},
   {id:116, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Jue 3 Jul',  local:'1L', vis:'3?', tercero:true},
-  {id:117, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Vie 4 Jul',  local:'1D', vis:'3?', tercero:true},
-  {id:118, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Vie 4 Jul',  local:'1G', vis:'3?', tercero:true},
+  {id:117, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Vie 4 Jul',  local:'1J', vis:'2H'},
+  {id:118, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Vie 4 Jul',  local:'2D', vis:'2G'},
   {id:119, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 5 Jul',  local:'1B', vis:'3?', tercero:true},
   {id:120, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 5 Jul',  local:'1K', vis:'3?', tercero:true},
   // --- OCTAVOS (8-11 Jul) ---
@@ -134,7 +133,7 @@ export const PARTIDOS_ELIMINATORIAS = [
   // --- SEMIFINALES (22-23 Jul) ---
   {id:401, fase:'semis', jornada:'Semifinales', fecha:'Mar 22 Jul', local:'S1', vis:'S2'},
   {id:402, fase:'semis', jornada:'Semifinales', fecha:'Mié 23 Jul', local:'S3', vis:'S4'},
-  // --- 3ER PUESTO (no puntúa) ---
+  // --- 3ER PUESTO ---
   {id:501, fase:'tercero', jornada:'3er Puesto', fecha:'Sáb 26 Jul', local:'Perdedor SF1', vis:'Perdedor SF2'},
   // --- FINAL ---
   {id:601, fase:'final', jornada:'Final', fecha:'Dom 27 Jul', local:'Ganador SF1', vis:'Ganador SF2'},
@@ -159,8 +158,6 @@ export const JORNADAS_GRUPOS = [
 export const AVATARS = ['⚽','🦁','🐯','🦅','🐉','🦊','🐺','🦈','🐻','🦋','🌟','🔥','💎','🚀','🎯','👑']
 export const COLORS  = ['#e63946','#f4a261','#2a9d8f','#457b9d','#9b5de5','#e9c46a','#06d6a0','#ef476f','#118ab2','#ffd166']
 
-// Grupos: exacto 5pts, ganador/empate 2pts
-// Eliminatorias: solo se predice quién pasa (no resultado)
 export function calcPts(pl, pv, rl, rv) {
   if (rl === '' || rv === '' || rl == null || rv == null) return null
   if (pl === '' || pv === '' || pl == null || pv == null) return 0
@@ -171,7 +168,6 @@ export function calcPts(pl, pv, rl, rv) {
   return 0
 }
 
-// Puntos por acertar quién clasifica en eliminatorias
 export function calcPtsClasificado(predEquipo, realEquipo, fase) {
   if (!realEquipo || !predEquipo) return 0
   if (predEquipo.toLowerCase() !== realEquipo.toLowerCase()) return 0
