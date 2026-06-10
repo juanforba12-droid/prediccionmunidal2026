@@ -139,7 +139,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Grid 2x2 */}
+      {/* Grid 2x2 juegos principales */}
       <div style={{ width:'100%', maxWidth:540, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
         <GameCard
           onClick={() => isGuest ? nav('/auth') : nav('/prediccion')}
@@ -172,6 +172,30 @@ export default function Home() {
         />
       </div>
 
+      {/* PLANTILLAS HISTÓRICAS — full width */}
+      <div style={{ width:'100%', maxWidth:540, marginTop:12 }}>
+        <button onClick={() => nav('/plantillas')} style={{
+          width:'100%',
+          background:'linear-gradient(135deg,rgba(245,158,11,0.07) 0%,rgba(234,88,12,0.07) 100%)',
+          border:'1px solid rgba(245,158,11,0.3)',
+          borderRadius:20, padding:'18px 20px', cursor:'pointer', textAlign:'left', outline:'none',
+          display:'flex', alignItems:'center', gap:16,
+          transition:'transform 0.15s, border-color 0.15s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.transform='scale(1.01)'; e.currentTarget.style.borderColor='rgba(245,158,11,0.6)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.borderColor='rgba(245,158,11,0.3)' }}
+        >
+          <div style={{ width:44, height:44, borderRadius:12, background:'rgba(245,158,11,0.18)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>🏟️</div>
+          <div style={{ flex:1 }}>
+            <div style={{ color:'#f59e0b', fontWeight:800, fontSize:16, letterSpacing:1 }}>PLANTILLAS HISTÓRICAS</div>
+            <div style={{ color:'rgba(255,255,255,0.4)', fontSize:12 }}>Adivina los 11 titulares de cada temporada</div>
+          </div>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
+            {['10 equipos','242 temporadas','Online'].map(t => <span key={t} style={{ fontSize:10, color:'#f59e0b', background:'rgba(245,158,11,0.1)', padding:'2px 8px', borderRadius:20 }}>{t}</span>)}
+          </div>
+        </button>
+      </div>
+
       {/* ESTIMON */}
       <div style={{ width:'100%', maxWidth:540, marginTop:12 }}>
         <button onClick={() => nav('/estimon')} style={{
@@ -191,7 +215,7 @@ export default function Home() {
             <div style={{ color:'rgba(255,255,255,0.4)', fontSize:12 }}>Adivina el numero exacto · Gana puntos</div>
           </div>
           <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
-            {['Individual','Online','2000+'].map(t => <span key={t} style={{ fontSize:10, color:'#00e5ff', background:'rgba(0,229,255,0.1)', padding:'2px 8px', borderRadius:20 }}>{t}</span>)}
+            {['Individual','Online','2000+'].map(t => <span key={t} style={{ fontSize:10, color:'#00e5ff', background:'rgba(0,229,229,0.1)', padding:'2px 8px', borderRadius:20 }}>{t}</span>)}
           </div>
         </button>
       </div>
