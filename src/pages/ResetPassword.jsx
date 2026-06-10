@@ -12,35 +12,40 @@ export default function ResetPassword() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    // Leer el token del hash de la URL (#access_token=...&type=recovery)
     const hash = window.location.hash.substring(1)
     const params = new URLSearchParams(hash)
-    const accessToken = params.get('access_token')
-    const refreshToken = params.get('refresh_token')
+    const token = params.get('access_token')
     const type = params.get('type')
 
-    if (type === 'recovery' && accessToken) {
-      // Establecer la sesión con el token del email
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken || ''
-      }).then(({ error }) => {
+    if (type === 'recovery' && token) {
+      // Intentar con verifyOtp (para tokens OTP cortos que genera Supabase)
+      supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'recovery'
+      }).then(({ data, error }) => {
         if (error) {
-          setValidSession(false)
+          // Fallback: intentar setSession por si es un JWT largo
+          supabase.auth.setSession({
+            access_token: token,
+            refresh_token: ''
+          }).then(({ error: e2 }) => {
+            if (!e2) setValidSession(true)
+            setChecking(false)
+          })
         } else {
           setValidSession(true)
+          setChecking(false)
         }
-        setChecking(false)
       })
     } else {
-      // Fallback: escuchar el evento de Supabase
+      // Escuchar evento PASSWORD_RECOVERY como fallback
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
         if (event === 'PASSWORD_RECOVERY') {
           setValidSession(true)
           setChecking(false)
         }
       })
-      setTimeout(() => setChecking(false), 2000)
+      setTimeout(() => setChecking(false), 3000)
       return () => subscription.unsubscribe()
     }
   }, [])
