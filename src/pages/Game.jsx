@@ -1200,7 +1200,7 @@ export default function Game() {
         </div>
 
         {/* PANEL LATERAL DE PUNTUACION */}
-        <div style={{ width: 220, flexShrink: 0, position: 'sticky', top: 80 }}>
+        <div className="panel-puntuacion-desktop" style={{ width: 220, flexShrink: 0, position: 'sticky', top: 80 }}>
           <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '14px 16px' }}>
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: mc, letterSpacing: 2, marginBottom: 12 }}>Como puntua</div>
 
