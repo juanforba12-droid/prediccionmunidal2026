@@ -668,7 +668,8 @@ export default function Game() {
               {matchesToShow.map(function(m) {
                 const isElim = ELIM_FASES.indexOf(m.fase) >= 0
                 const isTerceroFase = m.fase === 'tercero'
-                const isTerceroPlaceholder = m.tercero && m.vis === '3?' && !mejoresTerceros[DISEC_IDS.indexOf(m.id) - 8]
+                const terceroIdx = [113,114,115,116,117,118,119,120].indexOf(m.id)
+                const isTerceroPlaceholder = m.tercero && m.vis === '3?' && !mejoresTerceros[terceroIdx]
                 const localReal = resolverPlaceholder(m.local, clasifParaVista, standingsJugador)
                 const visRealBase = resolverPlaceholder(m.vis, clasifParaVista, standingsJugador)
                 const visReal = (m.tercero && m.vis === '3?')
