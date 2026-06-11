@@ -170,6 +170,7 @@ export default function Game() {
       return r && r.l !== '' && r.l != null && r.v !== '' && r.v != null
     }).length
     const fuenteCompleta = predCompletas === totalGrupos ? 'preds' : realesCompletos === totalGrupos ? 'reales' : predCompletas >= 60 ? 'preds' : null
+    console.log('DEBUG terceros:', predCompletas, realesCompletos, totalGrupos)
     if (!fuenteCompleta) return []
     const sv = {}
     const gks = Object.keys(GRUPOS)
