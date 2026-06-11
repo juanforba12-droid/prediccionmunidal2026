@@ -279,7 +279,8 @@ export default function Game() {
       const meLocal = JSON.parse(localStorage.getItem('player_' + code) || '{}')
 const meByName = plRes.data ? plRes.data.find(function(pl) { return pl.name === meLocal.name }) : null
 const me = meByName || meLocal
-      const apMap = {}, myMap = {}, apClasif = {}
+      let meReal = null       
+        const apMap = {}, myMap = {}, apClasif = {}
       if (predsRes.data) {
         predsRes.data.forEach(function(p) {
           if (!apMap[p.player_id]) apMap[p.player_id] = {}
