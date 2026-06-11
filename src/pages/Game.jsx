@@ -238,7 +238,18 @@ export default function Game() {
       const [grpRes, plRes, predsRes, myPredsRes, realesRes] = await Promise.all([
         supabase.from('groups').select('*').eq('code', code).single(),
         supabase.from('players').select('*').eq('group_code', code),
-        supabase.from('predictions').select('*').eq('group_code', code).limit(10000),
+        (async function() {
+          const all = []
+          let from = 0
+          while (true) {
+            const { data } = await supabase.from('predictions').select('*').eq('group_code', code).range(from, from + 999)
+            if (!data || data.length === 0) break
+            all.push(...data)
+            if (data.length < 1000) break
+            from += 1000
+          }
+          return { data: all }
+        })(),
         supabase.from('predictions').select('*').eq('group_code', code).eq('player_id', meForQuery.id || 'none'),
         supabase.from('results').select('*').eq('group_code', code),
       ])
