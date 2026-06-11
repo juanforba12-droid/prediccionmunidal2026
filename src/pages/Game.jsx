@@ -283,11 +283,14 @@ export default function Game() {
       let meReal = null       
         const apMap = {}, myMap = {}, apClasif = {}
       if (predsRes.data) {
+        const playerIds = [...new Set(predsRes.data.map(function(p){return p.player_id}))]
+        console.log('DEBUG me.id:', me.id, 'meReal2.id:', meReal2 && meReal2.id, 'playerIds en BD:', playerIds.slice(0,5))
         predsRes.data.forEach(function(p) {
           if (!apMap[p.player_id]) apMap[p.player_id] = {}
           apMap[p.player_id][p.match_id] = { l: p.goals_local != null ? p.goals_local : '', v: p.goals_vis != null ? p.goals_vis : '' }
           if (p.player_id === me.id || (meReal2 && p.player_id === meReal2.id)) myMap[p.match_id] = { l: p.goals_local != null ? p.goals_local : '', v: p.goals_vis != null ? p.goals_vis : '' }
         })
+        console.log('DEBUG myMap keys:', Object.keys(myMap).length)
         setAllPreds(apMap)
         if (Object.keys(myMap).length > 0) {
           setPreds(Object.assign({}, myMap))
