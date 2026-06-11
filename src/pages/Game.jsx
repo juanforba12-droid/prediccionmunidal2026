@@ -1106,3 +1106,19 @@ export default function Game() {
                             <input type="text" inputMode="numeric" maxLength={2} value={rl3} onChange={function(e) { saveReal(m.id, 'l', e.target.value) }} style={{ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
                             <span style={{ color: '#2a9d8f', fontWeight: 900 }}>:</span>
                             <input type="text" inputMode="numeric" maxLength={2} value={rv3} onChange={function(e) { saveReal(m.id, 'v', e.target.value) }} style={{
+ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )
+}
