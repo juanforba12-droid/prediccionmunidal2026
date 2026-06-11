@@ -234,10 +234,12 @@ export default function Game() {
   const loadAll = useCallback(async function(silent) {
     if (!silent) setLoading(true)
     try {
-      const [grpRes, plRes, predsRes, realesRes] = await Promise.all([
+      const meForQuery = JSON.parse(localStorage.getItem('player_' + code) || '{}')
+      const [grpRes, plRes, predsRes, myPredsRes, realesRes] = await Promise.all([
         supabase.from('groups').select('*').eq('code', code).single(),
         supabase.from('players').select('*').eq('group_code', code),
         supabase.from('predictions').select('*').eq('group_code', code).limit(10000),
+        supabase.from('predictions').select('*').eq('group_code', code).eq('player_id', meForQuery.id || 'none'),
         supabase.from('results').select('*').eq('group_code', code),
       ])
       if (grpRes.data) {
@@ -288,13 +290,16 @@ export default function Game() {
         predsRes.data.forEach(function(p) {
           if (!apMap[p.player_id]) apMap[p.player_id] = {}
           apMap[p.player_id][p.match_id] = { l: p.goals_local != null ? p.goals_local : '', v: p.goals_vis != null ? p.goals_vis : '' }
-          if (p.player_id === me.id || (meReal2 && p.player_id === meReal2.id)) myMap[p.match_id] = { l: p.goals_local != null ? p.goals_local : '', v: p.goals_vis != null ? p.goals_vis : '' }
+          if (false) myMap[p.match_id] = {}  // myMap se llena desde myPredsRes
         })
-        console.log('DEBUG myMap keys:', Object.keys(myMap).length)
         setAllPreds(apMap)
-        if (Object.keys(myMap).length > 0) {
-          setPreds(Object.assign({}, myMap))
-        }
+      }
+      if (myPredsRes.data && myPredsRes.data.length > 0) {
+        const myMap2 = {}
+        myPredsRes.data.forEach(function(p) {
+          myMap2[p.match_id] = { l: p.goals_local != null ? p.goals_local : '', v: p.goals_vis != null ? p.goals_vis : '' }
+        })
+        setPreds(Object.assign({}, myMap2))
       }
       const allExtrasMap = {}
       if (plRes.data) {
