@@ -11,7 +11,11 @@ const ELIM_FASES = ['dieciseisavos','octavos','cuartos','semis','tercero','final
 const LOCK_DATE = new Date('2026-06-11T18:00:00+02:00')
 const isGloballyLocked = () => new Date() >= LOCK_DATE
 const ADMIN_UIDS = ['2f506ea7-bb8a-4e5e-bf90-2816fcd73fe1']
-const DISEC_IDS = [101,102,103,104,105,106,107,108,113,114,115,116,117,118,119,120]
+
+// BRACKET FIFA CORRECTO:
+// Lado izquierdo:  G1=113(1E), G2=114(1I), G3=101(2A), G4=103(1F), G5=105(2K), G6=106(1H), G7=117(1D), G8=118(1G)
+// Lado derecho:    G9=102(1C), G10=104(2E), G11=115(1A), G12=116(1L), G13=107(1J), G14=108(2D), G15=119(1B), G16=120(1K)
+const DISEC_IDS = [113,114,101,103,105,106,117,118,102,104,115,116,107,108,119,120]
 const OCT_IDS = [201,202,203,204,205,206,207,208]
 const CUA_IDS = [301,302,303,304]
 const SEMI_IDS = [401,402]
@@ -1101,60 +1105,4 @@ export default function Game() {
                             <span style={{ flex: 1, fontSize: 12, textAlign: 'right', color: '#c8d8ea' }}>{m.local}</span>
                             <input type="text" inputMode="numeric" maxLength={2} value={rl3} onChange={function(e) { saveReal(m.id, 'l', e.target.value) }} style={{ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
                             <span style={{ color: '#2a9d8f', fontWeight: 900 }}>:</span>
-                            <input type="text" inputMode="numeric" maxLength={2} value={rv3} onChange={function(e) { saveReal(m.id, 'v', e.target.value) }} style={{ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
-                            <span style={{ flex: 1, fontSize: 12, color: '#c8d8ea' }}>{m.vis}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 16 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#e8eaf0', marginBottom: 14 }}>Quien pasa - Eliminatorias</div>
-              {['dieciseisavos', 'octavos', 'cuartos', 'semis', 'tercero', 'final'].map(function(faseElim) {
-                return (
-                  <div key={faseElim} style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, color: '#2a4060', fontWeight: 700, marginBottom: 8, letterSpacing: 2, textTransform: 'uppercase' }}>{faseElim}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {PARTIDOS_ELIMINATORIAS.filter(function(m) { return m.fase === faseElim }).map(function(m) {
-                        const localR = resolverPlaceholder(m.local, realClasif, standingsVivo)
-                        const visR = resolverPlaceholder(m.vis, realClasif, standingsVivo)
-                        const realEqA = realClasif[m.id] || ''
-                        const tieneEquipos2 = !esPlaceholder(localR) && !esPlaceholder(visR)
-                        return (
-                          <div key={m.id} style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: tieneEquipos2 ? 6 : 0 }}>
-                              <span style={{ flex: 1, fontSize: 12, textAlign: 'right', color: realEqA === localR && realEqA ? '#2a9d8f' : '#c8d8ea', fontWeight: realEqA === localR && realEqA ? 700 : 400 }}>{localR}</span>
-                              <span style={{ color: '#2a4060', fontSize: 11, fontWeight: 700 }}>vs</span>
-                              <span style={{ flex: 1, fontSize: 12, color: realEqA === visR && realEqA ? '#2a9d8f' : '#c8d8ea', fontWeight: realEqA === visR && realEqA ? 700 : 400 }}>{visR}</span>
-                            </div>
-                            {tieneEquipos2 && (
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                {[localR, visR].map(function(eq) {
-                                  return (
-                                    <button key={eq} onClick={function() { saveRealClasif(m.id, eq) }}
-                                      style={{ flex: 1, padding: '5px 8px', borderRadius: 8, border: '1.5px solid ' + (realEqA === eq ? 'rgba(42,157,143,.6)' : 'rgba(255,215,0,0.2)'), background: realEqA === eq ? 'rgba(42,157,143,.2)' : 'rgba(255,215,0,0.04)', color: realEqA === eq ? '#2a9d8f' : '#ffd700', fontSize: 12, cursor: 'pointer', fontWeight: realEqA === eq ? 700 : 400 }}>
-                                      {eq}
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            )}
-                            {!tieneEquipos2 && <div style={{ fontSize: 11, color: '#2a4060' }}>Pendiente de resultados</div>}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-      </div>
-    </div>
-  )
-}
+                            <input type="text" inputMode="numeric" maxLength={2} value={rv3} onChange={function(e) { saveReal(m.id, 'v', e.target.value) }} style={{
