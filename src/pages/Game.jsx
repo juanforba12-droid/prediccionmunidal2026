@@ -290,17 +290,7 @@ export default function Game() {
         })
       }
       setAllPreds(apMap)
-      setPreds(function(prev) {
-        if (Object.keys(myMap).length > 0) return Object.assign({}, myMap)
-        const merged = Object.assign({}, myMap)
-        Object.keys(prev).forEach(function(mid) {
-          if (parseInt(mid) >= 101) return
-          if (!merged[mid]) { merged[mid] = prev[mid]; return }
-          if ((prev[mid].l !== '' && prev[mid].l != null) && (merged[mid].l === '' || merged[mid].l == null)) merged[mid].l = prev[mid].l
-          if ((prev[mid].v !== '' && prev[mid].v != null) && (merged[mid].v === '' || merged[mid].v == null)) merged[mid].v = prev[mid].v
-        })
-        return merged
-      })
+      setPreds(Object.assign({}, myMap))
       const allExtrasMap = {}
       if (plRes.data) {
         plRes.data.forEach(function(pl) {
