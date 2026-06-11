@@ -277,8 +277,9 @@ export default function Game() {
         return merged
       })
       const meLocal = JSON.parse(localStorage.getItem('player_' + code) || '{}')
-const meByName = plRes.data ? plRes.data.find(function(pl) { return pl.name === meLocal.name }) : null
-const me = meByName || meLocal
+      const meReal2 = plRes.data ? plRes.data.find(function(pl) { return pl.id === meLocal.id || pl.name === meLocal.name }) : null
+      const me = meReal2 ? meReal2 : meLocal
+      if (meReal2 && meReal2.id !== meLocal.id) { localStorage.setItem('player_' + code, JSON.stringify(meReal2)) }
       let meReal = null       
         const apMap = {}, myMap = {}, apClasif = {}
       if (predsRes.data) {
