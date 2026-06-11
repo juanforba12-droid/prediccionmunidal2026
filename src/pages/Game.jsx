@@ -217,6 +217,7 @@ export default function Game() {
       if (b.gf !== a.gf) return b.gf - a.gf
       return a.name.localeCompare(b.name)
     })
+    console.log('DEBUG mejoresTerceros result:', terceros.slice(0,8).map(function(t){return t.name}))
     return terceros.slice(0, 8).map(function(t) { return t.name })
   })()
 
