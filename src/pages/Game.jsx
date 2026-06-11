@@ -861,7 +861,9 @@ export default function Game() {
                       <span style={{ fontSize: 11, color: '#2a4060' }}>+10 pts</span>
                     </div>
                     <input placeholder={locked ? (myVal || 'Sin prediccion') : item.ph} value={myVal}
-                      onChange={function(e) { saveExtras(Object.assign({}, extras, { [item.key]: e.target.value })) }} readOnly={locked}
+                      onChange={function(e) { saveExtras(Object.assign({}, extras, { [item.key]: e.target.value })) }}
+onBlur={function(e) { saveExtras(Object.assign({}, extras, { [item.key]: e.target.value })) }}
+readOnly={locked}
                       style={inpStyle(!!myVal, locked)} />
                     {realVal && (
                       <div style={{ fontSize: 11, color: hit ? '#2a9d8f' : '#e63946', marginTop: 4 }}>
