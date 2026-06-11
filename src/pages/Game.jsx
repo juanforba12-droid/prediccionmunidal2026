@@ -3,18 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import {
   PARTIDOS_GRUPOS, PARTIDOS_ELIMINATORIAS, TODAS_LAS_FASES,
-  JORNADAS_GRUPOS, calcPts, calcPtsClasificado, AVATARS, COLORS, GRUPOS, PTS_CLASIFICADO
+  JORNADAS_GRUPOS, calcPts, calcPtsClasificado, AVATARS, COLORS, GRUPOS, PTS_CLASIFICADO, isMatchLocked
 } from '../lib/data.js'
 
 const ALL_MATCHES = [...PARTIDOS_GRUPOS, ...PARTIDOS_ELIMINATORIAS]
 const ELIM_FASES = ['dieciseisavos','octavos','cuartos','semis','tercero','final']
-const LOCK_DATE = new Date('2026-06-11T18:00:00+02:00')
-const isGloballyLocked = () => new Date() >= LOCK_DATE
 const ADMIN_UIDS = ['2f506ea7-bb8a-4e5e-bf90-2816fcd73fe1']
 
-// BRACKET FIFA CORRECTO:
-// Lado izquierdo:  G1=113(1E), G2=114(1I), G3=101(2A), G4=103(1F), G5=105(2K), G6=106(1H), G7=117(1D), G8=118(1G)
-// Lado derecho:    G9=102(1C), G10=104(2E), G11=115(1A), G12=116(1L), G13=107(1J), G14=108(2D), G15=119(1B), G16=120(1K)
 const DISEC_IDS = [113,114,101,103,105,106,117,118,102,104,115,116,107,108,119,120]
 const OCT_IDS = [201,202,203,204,205,206,207,208]
 const CUA_IDS = [301,302,303,304]
@@ -149,12 +144,22 @@ export default function Game() {
   const [loading, setLoading] = useState(true)
   const [globalRanking, setGlobalRanking] = useState([])
   const [loadingGlobal, setLoadingGlobal] = useState(false)
+  const [now, setNow] = useState(new Date())
+
+  // Actualizar 'now' cada minuto para que los bloqueos se refresquen
+  useEffect(function() {
+    const interval = setInterval(function() { setNow(new Date()) }, 60000)
+    return function() { clearInterval(interval) }
+  }, [])
 
   const myAuthId = getSuperAdminId()
   const isSuperAdmin = ADMIN_UIDS.indexOf(myAuthId) >= 0
   const isCreator = group && myPlayer && group.creator_id === myPlayer.id
   const shareUrl = window.location.origin + '/unirse/' + code
-  const locked = isGloballyLocked()
+
+  // locked global = cuando el primer partido de J1 ya empezó (para el banner)
+  const firstMatch = PARTIDOS_GRUPOS[0]
+  const globallyLocked = firstMatch ? isMatchLocked(firstMatch) : false
 
   const standingsVivo = calcStandingsFromReales(reales)
   const standingsJugador = calcStandingsFromReales(preds)
@@ -170,7 +175,6 @@ export default function Game() {
       return r && r.l !== '' && r.l != null && r.v !== '' && r.v != null
     }).length
     const fuenteCompleta = predCompletas === totalGrupos ? 'preds' : realesCompletos === totalGrupos ? 'reales' : predCompletas >= 60 ? 'preds' : null
-    console.log('DEBUG terceros:', predCompletas, realesCompletos, totalGrupos)
     if (!fuenteCompleta) return []
     const sv = {}
     const gks = Object.keys(GRUPOS)
@@ -217,7 +221,6 @@ export default function Game() {
       if (b.gf !== a.gf) return b.gf - a.gf
       return a.name.localeCompare(b.name)
     })
-    console.log('DEBUG mejoresTerceros result:', terceros.slice(0,8).map(function(t){return t.name}))
     return terceros.slice(0, 8).map(function(t) { return t.name })
   })()
 
@@ -300,10 +303,10 @@ export default function Game() {
             allExtrasMap[pl.id] = pl.extras_pred
             if (pl.extras_pred.clasif_elim) apClasif[pl.id] = pl.extras_pred.clasif_elim
             if (pl.id === me.id) {
-               if (document.activeElement.tagName !== 'INPUT') {
-              setExtras(pl.extras_pred)
-                 if (pl.extras_pred.clasif_elim) setPredClasif(pl.extras_pred.clasif_elim)
-}
+              if (document.activeElement.tagName !== 'INPUT') {
+                setExtras(pl.extras_pred)
+                if (pl.extras_pred.clasif_elim) setPredClasif(pl.extras_pred.clasif_elim)
+              }
             }
           }
         })
@@ -328,8 +331,8 @@ export default function Game() {
       goals_vis: cur.v !== '' && cur.v != null ? parseInt(cur.v) : null,
     }, { onConflict: 'group_code,player_id,match_id' })
   }
-  function savePred(matchId, side, val) {
-    if (locked) return
+  function savePred(matchId, side, val, matchLocked) {
+    if (matchLocked) return
     const clean = val.replace(/\D/g, '').slice(0, 2)
     let cur = null
     setPreds(function(p) {
@@ -370,8 +373,8 @@ export default function Game() {
   }
 
   const clasifTimer = useRef(null)
-  function savePredClasif(matchId, equipo) {
-    if (locked) return
+  function savePredClasif(matchId, equipo, matchLocked) {
+    if (matchLocked) return
     const yaSeleccionado = predClasif[matchId] === equipo
     const next = Object.assign({}, predClasif, { [matchId]: yaSeleccionado ? '' : equipo })
     setPredClasif(next)
@@ -397,7 +400,7 @@ export default function Game() {
 
   const extrasTimer = useRef(null)
   function saveExtras(newExtras) {
-    if (locked) return
+    if (globallyLocked) return
     setExtras(newExtras)
     clearTimeout(extrasTimer.current)
     extrasTimer.current = setTimeout(async function() {
@@ -567,7 +570,7 @@ export default function Game() {
             <div style={{ fontSize: 13, fontWeight: 700 }}>{group && group.name}</div>
             <div style={{ fontSize: 10, color: '#2a4060' }}>Codigo: <span style={{ color: '#e63946', fontWeight: 700, letterSpacing: 3 }}>{code}</span></div>
           </div>
-          {locked && <span style={{ fontSize: 10, color: '#f4a261', background: 'rgba(244,162,97,0.12)', padding: '3px 8px', borderRadius: 20, fontWeight: 700 }}>Cerrado</span>}
+          {globallyLocked && <span style={{ fontSize: 10, color: '#f4a261', background: 'rgba(244,162,97,0.12)', padding: '3px 8px', borderRadius: 20, fontWeight: 700 }}>En curso</span>}
           <button onClick={handleCopy} style={{ background: copied ? 'rgba(42,157,143,.2)' : 'rgba(255,255,255,.07)', border: '1px solid ' + (copied ? '#2a9d8f' : 'rgba(255,255,255,.1)'), borderRadius: 10, color: copied ? '#2a9d8f' : '#a0b4cc', padding: '7px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
             {copied ? 'Copiado' : 'Compartir'}
           </button>
@@ -576,9 +579,9 @@ export default function Game() {
 
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 12px' }}>
 
-        {locked && (
+        {globallyLocked && (
           <div style={{ margin: '12px 0', padding: '10px 16px', background: 'rgba(244,162,97,0.08)', border: '1px solid rgba(244,162,97,0.25)', borderRadius: 12, fontSize: 12, color: '#f4a261', textAlign: 'center' }}>
-            Predicciones cerradas desde 1h antes del primer partido.
+            El Mundial ya ha comenzado. Los partidos se bloquean a su hora de inicio.
           </div>
         )}
 
@@ -670,6 +673,7 @@ export default function Game() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {matchesToShow.map(function(m) {
+                const matchLocked = isMatchLocked(m)
                 const isElim = ELIM_FASES.indexOf(m.fase) >= 0
                 const isTerceroFase = m.fase === 'tercero'
                 const terceroIdx = [113,114,115,116,117,118,119,120].indexOf(Number(m.id))
@@ -700,7 +704,7 @@ export default function Game() {
                       <span style={{ fontSize: 10, color: '#2a4060', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 20 }}>
                         {m.grupo ? 'Grupo ' + m.grupo + ' | ' : ''}{m.fecha}
                       </span>
-                      {locked && !hasReal && !hasRealEq && <span style={{ fontSize: 10, color: '#f4a261', background: 'rgba(244,162,97,0.12)', padding: '2px 8px', borderRadius: 20 }}>Cerrado</span>}
+                      {matchLocked && !hasReal && !hasRealEq && <span style={{ fontSize: 10, color: '#f4a261', background: 'rgba(244,162,97,0.12)', padding: '2px 8px', borderRadius: 20 }}>Cerrado</span>}
                       {ptsBg && ptsLabel && <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#fff', background: ptsBg, padding: '2px 10px', borderRadius: 20 }}>{ptsLabel}</span>}
                     </div>
 
@@ -708,11 +712,11 @@ export default function Game() {
                       <div style={{ flex: 1, textAlign: 'right', fontSize: 13, fontWeight: 700 }}>{localReal}</div>
                       {!isElim ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                          <input type="text" inputMode="numeric" maxLength={2} value={pl} onChange={function(e) { savePred(m.id, 'l', e.target.value) }} onBlur={function() { savePredBlur(m.id) }} placeholder="-" readOnly={locked}
-                            style={{ width: 40, height: 40, textAlign: 'center', fontSize: 20, fontWeight: 900, borderRadius: 8, border: '2px solid ' + (pl !== '' ? mc : locked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'), background: locked ? 'rgba(255,255,255,0.04)' : mc + '18', color: locked ? '#3a5070' : mc, cursor: locked ? 'not-allowed' : 'text', outline: 'none' }} />
+                          <input type="text" inputMode="numeric" maxLength={2} value={pl} onChange={function(e) { savePred(m.id, 'l', e.target.value, matchLocked) }} onBlur={function() { savePredBlur(m.id) }} placeholder="-" readOnly={matchLocked}
+                            style={{ width: 40, height: 40, textAlign: 'center', fontSize: 20, fontWeight: 900, borderRadius: 8, border: '2px solid ' + (pl !== '' ? mc : matchLocked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'), background: matchLocked ? 'rgba(255,255,255,0.04)' : mc + '18', color: matchLocked ? '#3a5070' : mc, cursor: matchLocked ? 'not-allowed' : 'text', outline: 'none' }} />
                           <span style={{ color: '#1a2a3a', fontSize: 18, fontWeight: 900 }}>:</span>
-                          <input type="text" inputMode="numeric" maxLength={2} value={pv} onChange={function(e) { savePred(m.id, 'v', e.target.value) }} onBlur={function() { savePredBlur(m.id) }} placeholder="-" readOnly={locked}
-                            style={{ width: 40, height: 40, textAlign: 'center', fontSize: 20, fontWeight: 900, borderRadius: 8, border: '2px solid ' + (pv !== '' ? mc : locked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'), background: locked ? 'rgba(255,255,255,0.04)' : mc + '18', color: locked ? '#3a5070' : mc, cursor: locked ? 'not-allowed' : 'text', outline: 'none' }} />
+                          <input type="text" inputMode="numeric" maxLength={2} value={pv} onChange={function(e) { savePred(m.id, 'v', e.target.value, matchLocked) }} onBlur={function() { savePredBlur(m.id) }} placeholder="-" readOnly={matchLocked}
+                            style={{ width: 40, height: 40, textAlign: 'center', fontSize: 20, fontWeight: 900, borderRadius: 8, border: '2px solid ' + (pv !== '' ? mc : matchLocked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'), background: matchLocked ? 'rgba(255,255,255,0.04)' : mc + '18', color: matchLocked ? '#3a5070' : mc, cursor: matchLocked ? 'not-allowed' : 'text', outline: 'none' }} />
                         </div>
                       ) : (
                         <div style={{ fontSize: 16, color: '#1a2a3a', fontWeight: 900 }}>vs</div>
@@ -729,17 +733,17 @@ export default function Game() {
                           <div style={{ display: 'flex', gap: 8 }}>
                             {[localReal, visReal].map(function(eq) {
                               return (
-                                <button key={eq} onClick={function() { if (!locked) savePredClasif(m.id, eq) }}
-                                  style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: '2px solid ' + (miPredEq === eq ? mc : 'rgba(255,255,255,0.1)'), background: miPredEq === eq ? mc + '22' : 'rgba(255,255,255,0.04)', color: miPredEq === eq ? mc : '#8a9ab0', fontWeight: miPredEq === eq ? 700 : 400, fontSize: 13, cursor: locked ? 'not-allowed' : 'pointer' }}>
+                                <button key={eq} onClick={function() { savePredClasif(m.id, eq, matchLocked) }}
+                                  style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: '2px solid ' + (miPredEq === eq ? mc : 'rgba(255,255,255,0.1)'), background: miPredEq === eq ? mc + '22' : 'rgba(255,255,255,0.04)', color: miPredEq === eq ? mc : '#8a9ab0', fontWeight: miPredEq === eq ? 700 : 400, fontSize: 13, cursor: matchLocked ? 'not-allowed' : 'pointer' }}>
                                   {eq}
                                 </button>
                               )
                             })}
                           </div>
                         ) : (
-                          <input placeholder="Equipo que pasa..." value={miPredEq} readOnly={locked}
-                            onChange={function(e) { savePredClasif(m.id, e.target.value) }}
-                            style={inpStyle(!!miPredEq, locked)} />
+                          <input placeholder="Equipo que pasa..." value={miPredEq} readOnly={matchLocked}
+                            onChange={function(e) { savePredClasif(m.id, e.target.value, matchLocked) }}
+                            style={inpStyle(!!miPredEq, matchLocked)} />
                         )}
                         {hasRealEq && (
                           <div style={{ marginTop: 6, fontSize: 11, color: ptsClas > 0 ? '#2a9d8f' : '#e63946' }}>
@@ -784,8 +788,8 @@ export default function Game() {
                           <div style={{ display: 'flex', gap: 8 }}>
                             {[localReal, visReal].map(function(eq) {
                               return (
-                                <button key={eq} onClick={function() { if (!locked) savePredClasif(m.id, eq) }}
-                                  style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: '2px solid ' + (miPredEq === eq ? mc : 'rgba(255,255,255,0.1)'), background: miPredEq === eq ? mc + '22' : 'rgba(255,255,255,0.04)', color: miPredEq === eq ? mc : '#8a9ab0', fontWeight: miPredEq === eq ? 700 : 400, fontSize: 13, cursor: locked ? 'not-allowed' : 'pointer' }}>
+                                <button key={eq} onClick={function() { savePredClasif(m.id, eq, matchLocked) }}
+                                  style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: '2px solid ' + (miPredEq === eq ? mc : 'rgba(255,255,255,0.1)'), background: miPredEq === eq ? mc + '22' : 'rgba(255,255,255,0.04)', color: miPredEq === eq ? mc : '#8a9ab0', fontWeight: miPredEq === eq ? 700 : 400, fontSize: 13, cursor: matchLocked ? 'not-allowed' : 'pointer' }}>
                                   {eq}
                                 </button>
                               )
@@ -842,8 +846,8 @@ export default function Game() {
 
         {tab === 'extras' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: locked ? 'rgba(244,162,97,0.06)' : 'rgba(255,255,255,0.03)', border: locked ? '1px solid rgba(244,162,97,0.2)' : 'none', borderRadius: 12, padding: '12px 16px', fontSize: 12, color: locked ? '#f4a261' : '#2a6070' }}>
-              {locked ? 'Predicciones cerradas.' : 'Predicciones especiales - 10 pts cada una.'}
+            <div style={{ background: globallyLocked ? 'rgba(244,162,97,0.06)' : 'rgba(255,255,255,0.03)', border: globallyLocked ? '1px solid rgba(244,162,97,0.2)' : 'none', borderRadius: 12, padding: '12px 16px', fontSize: 12, color: globallyLocked ? '#f4a261' : '#2a6070' }}>
+              {globallyLocked ? 'Predicciones de extras cerradas.' : 'Predicciones especiales - 10 pts cada una.'}
             </div>
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: '#e8eaf0', marginBottom: 14 }}>Premios individuales - 10 pts c/u</div>
@@ -862,11 +866,11 @@ export default function Game() {
                       <span style={{ fontSize: 12, fontWeight: 700, color: hit ? '#2a9d8f' : '#a0b4cc' }}>{item.label}</span>
                       <span style={{ fontSize: 11, color: '#2a4060' }}>+10 pts</span>
                     </div>
-                    <input placeholder={locked ? (myVal || 'Sin prediccion') : item.ph} value={myVal}
+                    <input placeholder={globallyLocked ? (myVal || 'Sin prediccion') : item.ph} value={myVal}
                       onChange={function(e) { saveExtras(Object.assign({}, extras, { [item.key]: e.target.value })) }}
-onBlur={function(e) { saveExtras(Object.assign({}, extras, { [item.key]: e.target.value })) }}
-readOnly={locked}
-                      style={inpStyle(!!myVal, locked)} />
+                      onBlur={function(e) { saveExtras(Object.assign({}, extras, { [item.key]: e.target.value })) }}
+                      readOnly={globallyLocked}
+                      style={inpStyle(!!myVal, globallyLocked)} />
                     {realVal && (
                       <div style={{ fontSize: 11, color: hit ? '#2a9d8f' : '#e63946', marginTop: 4 }}>
                         {hit ? 'Acertado! +10 pts' : 'Real: ' + realVal}
@@ -1112,8 +1116,8 @@ readOnly={locked}
                             <span style={{ flex: 1, fontSize: 12, textAlign: 'right', color: '#c8d8ea' }}>{m.local}</span>
                             <input type="text" inputMode="numeric" maxLength={2} value={rl3} onChange={function(e) { saveReal(m.id, 'l', e.target.value) }} style={{ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
                             <span style={{ color: '#2a9d8f', fontWeight: 900 }}>:</span>
-                            <input type="text" inputMode="numeric" maxLength={2} value={rv3} onChange={function(e) { saveReal(m.id, 'v', e.target.value) }} style={{
- width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
+                            <input type="text" inputMode="numeric" maxLength={2} value={rv3} onChange={function(e) { saveReal(m.id, 'v', e.target.value) }} style={{ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
+                            <span style={{ flex: 1, fontSize: 12, color: '#c8d8ea' }}>{m.vis}</span>
                           </div>
                         )
                       })}
