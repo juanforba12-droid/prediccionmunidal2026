@@ -117,6 +117,8 @@ export const PARTIDOS_ELIMINATORIAS = [
   {id:119, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 5 Jul',  local:'1B', vis:'3?', tercero:true},
   {id:120, fase:'dieciseisavos', jornada:'Dieciseisavos', fecha:'Sáb 5 Jul',  local:'1K', vis:'3?', tercero:true},
   // --- OCTAVOS (8-11 Jul) ---
+  // Lado izquierdo: G1=113, G2=114, G3=101, G4=103, G5=105, G6=106, G7=117, G8=118
+  // Lado derecho:   G9=102, G10=104, G11=115, G12=116, G13=107, G14=108, G15=119, G16=120
   {id:201, fase:'octavos', jornada:'Octavos', fecha:'Mar 8 Jul',  local:'G1',  vis:'G2'},
   {id:202, fase:'octavos', jornada:'Octavos', fecha:'Mar 8 Jul',  local:'G3',  vis:'G4'},
   {id:203, fase:'octavos', jornada:'Octavos', fecha:'Mié 9 Jul',  local:'G5',  vis:'G6'},
@@ -126,11 +128,14 @@ export const PARTIDOS_ELIMINATORIAS = [
   {id:207, fase:'octavos', jornada:'Octavos', fecha:'Vie 11 Jul', local:'G13', vis:'G14'},
   {id:208, fase:'octavos', jornada:'Octavos', fecha:'Vie 11 Jul', local:'G15', vis:'G16'},
   // --- CUARTOS (15-18 Jul) ---
+  // Lado izquierdo: C1=201, C2=202, C3=203, C4=204
+  // Lado derecho:   C5=205, C6=206, C7=207, C8=208
   {id:301, fase:'cuartos', jornada:'Cuartos', fecha:'Mar 15 Jul', local:'C1',  vis:'C2'},
   {id:302, fase:'cuartos', jornada:'Cuartos', fecha:'Mar 15 Jul', local:'C3',  vis:'C4'},
   {id:303, fase:'cuartos', jornada:'Cuartos', fecha:'Mié 16 Jul', local:'C5',  vis:'C6'},
   {id:304, fase:'cuartos', jornada:'Cuartos', fecha:'Mié 16 Jul', local:'C7',  vis:'C8'},
   // --- SEMIFINALES (22-23 Jul) ---
+  // SF1 = lado izquierdo (España), SF2 = lado derecho (Uruguay)
   {id:401, fase:'semis', jornada:'Semifinales', fecha:'Mar 22 Jul', local:'S1', vis:'S2'},
   {id:402, fase:'semis', jornada:'Semifinales', fecha:'Mié 23 Jul', local:'S3', vis:'S4'},
   // --- 3ER PUESTO ---
