@@ -401,7 +401,7 @@ export default function Game() {
     extrasTimer.current = setTimeout(async function() {
       if (!myPlayer || !myPlayer.id) return
       await supabase.from('players').update({ extras_pred: newExtras }).eq('group_code', code).eq('name', myPlayer.name)
-    }, 800)
+    }, 200)
   }
 
   async function saveExtrasReal(newExtrasReal) {
