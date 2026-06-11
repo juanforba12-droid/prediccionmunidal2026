@@ -675,7 +675,7 @@ export default function Game() {
                 const localReal = resolverPlaceholder(m.local, clasifParaVista, standingsJugador)
                 const visRealBase = resolverPlaceholder(m.vis, clasifParaVista, standingsJugador)
                 const visReal = (m.tercero && m.vis === '3?')
-                  ? (mejoresTerceros[DISEC_IDS.indexOf(m.id) - 8] || '3o pendiente')
+                  ? (mejoresTerceros[[113,114,115,116,117,118,119,120].indexOf(Number(m.id))] || '3o pendiente')
                   : visRealBase
                 const tieneEquiposReales = !esPlaceholder(localReal) && !esPlaceholder(visReal)
                 const pl = (preds[m.id] && preds[m.id].l != null) ? preds[m.id].l : ''
