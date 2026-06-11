@@ -286,7 +286,7 @@ export default function Game() {
         predsRes.data.forEach(function(p) {
           if (!apMap[p.player_id]) apMap[p.player_id] = {}
           apMap[p.player_id][p.match_id] = { l: p.goals_local != null ? p.goals_local : '', v: p.goals_vis != null ? p.goals_vis : '' }
-          if (p.player_id === me.id || (meReal && p.player_id === meReal.id)) myMap[p.match_id] = { l: p.goals_local != null ? p.goals_local : '', v: p.goals_vis != null ? p.goals_vis : '' }
+          if (p.player_id === me.id || (meReal2 && p.player_id === meReal2.id)) myMap[p.match_id] = { l: p.goals_local != null ? p.goals_local : '', v: p.goals_vis != null ? p.goals_vis : '' }
         })
       }
       setAllPreds(apMap)
