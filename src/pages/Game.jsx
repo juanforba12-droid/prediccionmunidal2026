@@ -300,8 +300,10 @@ export default function Game() {
             allExtrasMap[pl.id] = pl.extras_pred
             if (pl.extras_pred.clasif_elim) apClasif[pl.id] = pl.extras_pred.clasif_elim
             if (pl.id === me.id) {
+               if (document.activeElement.tagName !== 'INPUT') {
               setExtras(pl.extras_pred)
-              if (pl.extras_pred.clasif_elim) setPredClasif(pl.extras_pred.clasif_elim)
+                 if (pl.extras_pred.clasif_elim) setPredClasif(pl.extras_pred.clasif_elim)
+}
             }
           }
         })
