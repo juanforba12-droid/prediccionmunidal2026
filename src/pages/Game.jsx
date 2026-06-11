@@ -179,7 +179,7 @@ export default function Game() {
       sv[grp] = GRUPOS[grp].map(function(t) { return { name: t, pts: 0, gf: 0, gc: 0 } })
     }
     PARTIDOS_GRUPOS.forEach(function(m) {
-      const r = fuenteCompleta === 'preds' ? preds[m.id] : reales[m.id]
+      const r = fuenteCompleta === 'preds' ? (preds[m.id] || preds[String(m.id)]) : (reales[m.id] || reales[String(m.id)])
       if (!r) return
       const rl = r.l, rv = r.v
       if (rl == null || rl === '' || rv == null || rv === '') return
