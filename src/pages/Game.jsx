@@ -237,7 +237,7 @@ export default function Game() {
       const [grpRes, plRes, predsRes, realesRes] = await Promise.all([
         supabase.from('groups').select('*').eq('code', code).single(),
         supabase.from('players').select('*').eq('group_code', code),
-        supabase.from('predictions').select('*').eq('group_code', code),
+        supabase.from('predictions').select('*').eq('group_code', code).limit(10000),
         supabase.from('results').select('*').eq('group_code', code),
       ])
       if (grpRes.data) {
