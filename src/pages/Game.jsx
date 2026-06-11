@@ -291,8 +291,8 @@ export default function Game() {
       }
       setAllPreds(apMap)
       setPreds(function(prev) {
+        if (Object.keys(myMap).length > 0) return myMap
         const merged = Object.assign({}, myMap)
-        if (Object.keys(myMap).length > 0) return merged
         Object.keys(prev).forEach(function(mid) {
           if (parseInt(mid) >= 101) return
           if (!merged[mid]) { merged[mid] = prev[mid]; return }
