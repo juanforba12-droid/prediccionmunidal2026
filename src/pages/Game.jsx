@@ -1123,7 +1123,8 @@ export default function Game() {
                             <input type="text" inputMode="numeric" maxLength={2} value={rl3} onChange={async function(e) {
                               const clean = e.target.value.replace(/\D/g,'').slice(0,2)
                               setReales(function(prev) { return Object.assign({}, prev, { [m.id]: Object.assign({}, prev[m.id]||{}, {l:clean}) }) })
-                              const allGroups = ['AL3R6U','QQX2RH','8KVFFG','74HKKV','H5IDL7','D80WMZ','6JHVV5','JJJ0PD','VUNCEE','R3HJ1E','LGH9KZ','PZ0CR2','8KVFFG']
+                              const { data: allGrps } = await supabase.from('groups').select('code')
+                              const allGroups = (allGrps || []).map(function(g){return g.code})
                               const gv = (reales[m.id]&&reales[m.id].v!==''&&reales[m.id].v!=null)?parseInt(reales[m.id].v):null
                               for (const gc of allGroups) {
                                 await supabase.from('results').upsert({ group_code: gc, match_id: m.id, goals_local: clean!==''?parseInt(clean):null, goals_vis: gv }, { onConflict: 'group_code,match_id' })
@@ -1133,7 +1134,8 @@ export default function Game() {
                             <input type="text" inputMode="numeric" maxLength={2} value={rv3} onChange={async function(e) {
                               const clean = e.target.value.replace(/\D/g,'').slice(0,2)
                               setReales(function(prev) { return Object.assign({}, prev, { [m.id]: Object.assign({}, prev[m.id]||{}, {v:clean}) }) })
-                              const allGroups = ['AL3R6U','QQX2RH','8KVFFG','74HKKV','H5IDL7','D80WMZ','6JHVV5','JJJ0PD','VUNCEE','R3HJ1E','LGH9KZ','PZ0CR2','8KVFFG']
+                              const { data: allGrps } = await supabase.from('groups').select('code')
+                              const allGroups = (allGrps || []).map(function(g){return g.code})
                               const gl = (reales[m.id]&&reales[m.id].l!==''&&reales[m.id].l!=null)?parseInt(reales[m.id].l):null
                               for (const gc of allGroups) {
                                 await supabase.from('results').upsert({ group_code: gc, match_id: m.id, goals_local: gl, goals_vis: clean!==''?parseInt(clean):null }, { onConflict: 'group_code,match_id' })
