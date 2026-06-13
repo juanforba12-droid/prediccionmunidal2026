@@ -1108,6 +1108,15 @@ export default function Game() {
             </div>
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: '#e8eaf0', marginBottom: 14 }}>Introducir resultados - Grupos</div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: '#ffd700', marginBottom: 6 }}>Grupo destino (código)</div>
+                <input
+                  placeholder="Código del grupo (ej: AL3R6U)"
+                  defaultValue={code}
+                  id="admin-target-group"
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,215,0,0.3)', background: 'rgba(255,215,0,0.06)', color: '#ffd700', fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
+                />
+              </div>
               {['J1', 'J2', 'J3'].map(function(jor) {
                 return (
                   <div key={jor} style={{ marginBottom: 16 }}>
@@ -1119,9 +1128,23 @@ export default function Game() {
                         return (
                           <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
                             <span style={{ flex: 1, fontSize: 12, textAlign: 'right', color: '#c8d8ea' }}>{m.local}</span>
-                            <input type="text" inputMode="numeric" maxLength={2} value={rl3} onChange={function(e) { saveReal(m.id, 'l', e.target.value) }} style={{ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
+                            <input type="text" inputMode="numeric" maxLength={2} value={rl3} onChange={function(e) {
+                              const targetCode = document.getElementById('admin-target-group') ? document.getElementById('admin-target-group').value : code
+                              const clean = e.target.value.replace(/\D/g,'').slice(0,2)
+                              setReales(function(prev) { return Object.assign({}, prev, { [m.id]: Object.assign({}, prev[m.id]||{}, {l:clean}) }) })
+                              setTimeout(async function() {
+                                await supabase.from('results').upsert({ group_code: targetCode, match_id: m.id, goals_local: clean!==''?parseInt(clean):null, goals_vis: (reales[m.id]&&reales[m.id].v!==''&&reales[m.id].v!=null)?parseInt(reales[m.id].v):null }, { onConflict: 'group_code,match_id' })
+                              }, 0)
+                            }} style={{ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
                             <span style={{ color: '#2a9d8f', fontWeight: 900 }}>:</span>
-                            <input type="text" inputMode="numeric" maxLength={2} value={rv3} onChange={function(e) { saveReal(m.id, 'v', e.target.value) }} style={{ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
+                            <input type="text" inputMode="numeric" maxLength={2} value={rv3} onChange={function(e) {
+                              const targetCode = document.getElementById('admin-target-group') ? document.getElementById('admin-target-group').value : code
+                              const clean = e.target.value.replace(/\D/g,'').slice(0,2)
+                              setReales(function(prev) { return Object.assign({}, prev, { [m.id]: Object.assign({}, prev[m.id]||{}, {v:clean}) }) })
+                              setTimeout(async function() {
+                                await supabase.from('results').upsert({ group_code: targetCode, match_id: m.id, goals_local: (reales[m.id]&&reales[m.id].l!==''&&reales[m.id].l!=null)?parseInt(reales[m.id].l):null, goals_vis: clean!==''?parseInt(clean):null }, { onConflict: 'group_code,match_id' })
+                              }, 0)
+                            }} style={{ width: 34, height: 30, textAlign: 'center', fontSize: 14, fontWeight: 700, borderRadius: 6, border: '1.5px solid rgba(42,157,143,.4)', background: 'rgba(42,157,143,.12)', color: '#2a9d8f', outline: 'none' }} />
                             <span style={{ flex: 1, fontSize: 12, color: '#c8d8ea' }}>{m.vis}</span>
                           </div>
                         )
