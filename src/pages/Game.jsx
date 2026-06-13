@@ -424,7 +424,7 @@ export default function Game() {
     setLoadingGlobal(true)
     try {
       const [predsRes, realesRes, playersRes] = await Promise.all([
-        supabase.from('predictions').select('player_id, match_id, goals_local, goals_vis, group_code'),
+        supabase.from('predictions').select('player_id, match_id, goals_local, goals_vis, group_code').limit(10000),
         supabase.from('results').select('match_id, goals_local, goals_vis, group_code'),
         supabase.from('players').select('id, name, avatar, color, group_code'),
       ])
